@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.logback.classic)
 
     testImplementation(platform(libs.junit.bom))
+    testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

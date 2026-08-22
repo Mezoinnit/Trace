@@ -86,10 +86,15 @@ Phases 0–19 as defined in the master plan. Phases are executed in order and ar
 not considered complete until the Definition of Done in the plan is satisfied.
 Current status:
 
-- **Phase 0 — completed** (pending human review): repo restructured into
-  `backend/` + `android/`, 15 root docs, 14 ADRs, backend modular-monolith
-  scaffold (builds + tests pass), CI pipeline, git initialized.
-- Phases 1+ — see the plan.
+- **Phase 0 — completed:** repo restructured into `backend/` + `android/`,
+  15 root docs, 14 ADRs, backend modular-monolith scaffold, CI pipeline.
+- **Phase 1 — completed:** multi-tenant backend core. JWT auth (argon2id +
+  rotating refresh tokens with reuse detection), workspaces + membership,
+  tenant-isolated repository layer with explicit transaction boundaries,
+  `/api/v1` error envelope, request IDs, rate limiting, `/health/ready`,
+  structured JSON logging option, 46 automated tests including the
+  tenant-isolation matrix (embedded Postgres). See ADR-015.
+- Phases 2+ — see the plan (source abstraction + resolver next).
 
 ## Non-goals for V1
 

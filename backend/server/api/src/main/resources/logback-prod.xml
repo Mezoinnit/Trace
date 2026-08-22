@@ -1,0 +1,13 @@
+<configuration>
+    <!-- Production: structured JSON logs (OBSERVABILITY.md §1).
+         Selected via LOGBACK_CONFIGURATION_FILE=logback-prod.xml -->
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"api"}</customFields>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

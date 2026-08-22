@@ -40,8 +40,22 @@ cd android
 
 ## 3. Configuration
 
-Configuration is environment-driven (`DATABASE_*`, `PORT`, AI provider keys).
-`backend/.env.example` documents every variable. No secrets are committed.
+Configuration is environment-driven. `backend/.env.example` documents every
+variable. No secrets are committed.
+
+| variable | default | notes |
+|----------|---------|-------|
+| `DATABASE_URL` | `jdbc:postgresql://localhost:5432/trace` | |
+| `DATABASE_USER` / `DATABASE_PASSWORD` | `trace` / `trace` | local defaults |
+| `DATABASE_MAX_POOL_SIZE` | `10` | |
+| `PORT` | `8080` | HTTP API port |
+| `TRACE_ENV` | unset | set to `production` to enforce strict secret handling |
+| `JWT_SECRET` | dev fallback (insecure) | **required in production**, ≥32 bytes (ADR-015) |
+| `ACCESS_TOKEN_TTL_MINUTES` | `15` | |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | |
+| `RATE_LIMIT_AUTH_PER_MIN` | `10` | per client IP on `/api/v1/auth/*` |
+| `RATE_LIMIT_API_PER_MIN` | `120` | per user on other `/api/v1/*` routes |
+| `LOGBACK_CONFIGURATION_FILE` | console logging | set to `logback-prod.xml` for JSON logs |
 
 ## 4. Migrations strategy
 
