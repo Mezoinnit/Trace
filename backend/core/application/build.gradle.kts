@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":core:domain"))
 
     testImplementation(platform(libs.junit.bom))
+    testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

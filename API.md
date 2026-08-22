@@ -39,12 +39,84 @@ Codes: `VALIDATION_ERROR`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`,
 
 ### Authentication
 
+Implemented in Phase 1 (ADR-015). Access tokens are HS256 JWTs (default
+15 min); refresh tokens are opaque 256-bit values, rotated on every use with
+family-based reuse detection.
+
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `/api/v1/auth/signin` | email/password or magic-link, per auth provider |
-| POST | `/api/v1/auth/signout` | revoke session |
-| POST | `/api/v1/auth/refresh` | rotate refresh token |
-| POST | `/api/v1/auth/register-device` | register FCM token (body: `device_id`, `push_token`, `platform`, `app_version`) |
+| POST | `/api/v1/auth/register` | creates user + personal workspace, returns session |
+| POST | `/api/v1/auth/signin` | returns session |
+| POST | `/api/v1/auth/refresh` | rotates refresh token; reuse revokes the family |
+| POST | `/api/v1/auth/signout` | revokes the presented token's family; idempotent |
+
+`POST /api/v1/auth/register`:
+
+```json
+{ "email": "user@example.com", "password": "password-123", "display_name": "Me" }
+```
+
+- `201 Created` → session response (below). `409 CONFLICT` when the email is
+  registered; `400 VALIDATION_ERROR` for invalid email or weak password
+  (min 10 chars, letters + digits).
+- Passwords are never logged; hashes are argon2id.
+
+`POST /api/v1/auth/signin` → same session response; wrong credentials return
+`401 UNAUTHENTICATED` without revealing account existence.
+
+Session response:
+
+```json
+{
+  "user": { "id": "…", "email": "…", "display_name": null },
+  "workspace": { "id": "…", "name": "Personal Workspace" },
+  "access_token": "…",
+  "access_token_expires_at": "2026-08-22T12:15:00Z",
+  "refresh_token": "…"
+}
+```
+
+`POST /api/v1/auth/refresh` body `{ "refresh_token": "…" }` → new session
+response. Presenting a previously used refresh token is treated as compromise:
+the whole family is revoked (`401`) and a `REFRESH_TOKEN_REUSE` audit event is
+recorded.
+
+`POST /api/v1/auth/signout` body `{ "refresh_token": "…" }` → `204`; safe to
+retry.
+
+### Identity
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/me` | identity + workspaces with roles |
+| DELETE | `/api/v1/me` | account deletion; refuses while member of shared workspaces (`409`) |
+
+`GET /api/v1/me` response:
+
+```json
+{
+  "user": { "id": "…", "email": "…", "display_name": "…" },
+  "workspaces": [ { "id": "…", "name": "Personal Workspace", "role": "OWNER" } ]
+}
+```
+
+### Workspaces
+
+Tenant-owned resource CRUD proving the Phase 1 exit criteria.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/workspaces` | caller's workspaces with roles |
+| POST | `/api/v1/workspaces` | create; caller becomes OWNER |
+| GET | `/api/v1/workspaces/{id}` | detail; members only |
+| PATCH | `/api/v1/workspaces/{id}` | rename; OWNER only |
+| DELETE | `/api/v1/workspaces/{id}` | OWNER only |
+| GET | `/api/v1/workspaces/{id}/members` | members with roles and emails |
+
+Non-members receive `404` on every operation (never `403`) to prevent tenant
+enumeration (ADR-010).
+
+### Device registration (planned — notifications phase)
 
 ### Watches
 
@@ -180,9 +252,11 @@ return:
 ## Rate limiting
 
 Limits at IP, account, workspace, endpoint, source, and expensive operation
-levels (SECURITY.md §5). Over-limit returns `429` with a `Retry-After` header.
-Source resolution, generic web fetching, AI operations, and search are protected
-specifically.
+levels (SECURITY.md §5). Over-limit returns `429` with a `Retry-After` header
+and a `RATE_LIMITED` error envelope. Phase 1 defaults (configurable via env):
+auth routes 10/min per client IP; general API 120/min per user (IP before
+authentication). Single-instance store; shared store deferred until scale
+requires it.
 
 ## Versioning and compatibility
 

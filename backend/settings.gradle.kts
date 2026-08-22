@@ -17,8 +17,10 @@ rootProject.name = "trace-backend"
 include(
     ":core:domain",
     ":core:application",
+    ":infrastructure:security",
     ":infrastructure:persistence",
     ":server:api",
     ":server:worker",
     ":server:scheduler",
+    ":test-support",
 )

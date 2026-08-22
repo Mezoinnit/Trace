@@ -29,34 +29,52 @@
 | value | text NOT NULL | |
 | updated_at | timestamptz NOT NULL | |
 
-### workspaces
-
-| column | type | notes |
-|--------|------|-------|
-| id | uuid PK | tenant boundary |
-| name | text NOT NULL | |
-| created_at | timestamptz NOT NULL | |
-| updated_at | timestamptz NOT NULL | |
-
-### users
-
-| column | type | notes |
-|--------|------|-------|
-| id | uuid PK | |
-| email | text UNIQUE NOT NULL | normalized lowercase |
-| display_name | text | |
-| created_at | timestamptz NOT NULL | |
-| updated_at | timestamptz NOT NULL | |
-
 ### workspace_members
 
 | column | type | notes |
 |--------|------|-------|
-| workspace_id | uuid NOT NULL REFERENCES workspaces(id) | |
-| user_id | uuid NOT NULL REFERENCES users(id) | |
-| role | text NOT NULL CHECK (role IN ('OWNER','ADMIN','MEMBER')) | |
+| workspace_id | uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE | |
+| user_id | uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE | |
+| role | text NOT NULL CHECK (role IN ('OWNER','ADMIN','MEMBER')) | mutations require OWNER (Phase 1) |
 | created_at | timestamptz NOT NULL | |
 | PRIMARY KEY (workspace_id, user_id) | | |
+
+### users
+
+Implemented in `V2__auth_tenancy.sql` (Phase 1).
+
+| column | type | notes |
+|--------|------|-------|
+| id | uuid PK | |
+| email | text NOT NULL, unique case-insensitively (`lower(email)`) | stored lowercase |
+| display_name | text nullable | ≤100 chars, application-enforced |
+| password_hash | text NOT NULL | argon2id encoded string (ADR-015) |
+| created_at / updated_at | timestamptz NOT NULL | |
+
+### workspaces
+
+Implemented in `V2__auth_tenancy.sql` (Phase 1).
+
+| column | type | notes |
+|--------|------|-------|
+| id | uuid PK | |
+| name | text NOT NULL CHECK (btrim <> '' and length ≤ 200) | |
+| created_by | uuid NOT NULL REFERENCES users(id) | |
+| created_at / updated_at | timestamptz NOT NULL | |
+
+### refresh_tokens
+
+Implemented in `V2__auth_tenancy.sql` (Phase 1). Only hashes are persisted.
+
+| column | type | notes |
+|--------|------|-------|
+| id | uuid PK | |
+| user_id | uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE | |
+| token_hash | text NOT NULL UNIQUE | sha-256 hex of the opaque token |
+| family_id | uuid NOT NULL | rotation chain; reuse revokes the whole family (ADR-015) |
+| status | text NOT NULL CHECK (status IN ('ACTIVE','REPLACED','REVOKED')) | |
+| expires_at | timestamptz NOT NULL | default TTL 30 days |
+| created_at / rotated_at / revoked_at | timestamptz | |
 
 ### devices
 
@@ -339,18 +357,24 @@ PostgreSQL job queue (ADR-008).
 
 ### audit_log
 
+Implemented in `V2__auth_tenancy.sql` (Phase 1). Actions recorded so far:
+`USER_REGISTERED, USER_SIGNED_IN, USER_SIGNED_OUT, ACCOUNT_DELETED,
+WORKSPACE_CREATED, WORKSPACE_UPDATED, WORKSPACE_DELETED,
+REFRESH_TOKEN_REUSE`.
+
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
 | workspace_id | uuid | nullable for system-level |
-| actor_type | text NOT NULL | `USER`,`SYSTEM`,`JOB` |
-| actor_id | text | |
+| actor_type | text NOT NULL CHECK IN ('USER','SYSTEM','JOB') | |
+| actor_id | text | user uuid or system id |
 | action | text NOT NULL | e.g. `WATCH_CREATED`,`SOURCE_DISABLED`,`EVENT_CREATED` |
 | resource_type | text | |
 | resource_id | text | |
-| metadata | jsonb | |
-| created_at | timestamptz NOT NULL | |
+| metadata | jsonb NOT NULL DEFAULT '{}' | |
+| created_at | timestamptz NOT NULL DEFAULT now() | |
 | INDEX (workspace_id, created_at DESC) | | |
+| INDEX (action, created_at DESC) | | |
 
 ### ai_operations
 
