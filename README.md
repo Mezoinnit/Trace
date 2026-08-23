@@ -111,7 +111,11 @@ Current status:
   watch CRUD with server-side membership checks. Proven by integration tests:
   new releases alert exactly once per watching workspace; replays never
   duplicate; one ingestion fans out to multiple watchers.
-- Phases 5+ — see the plan (event engine: clustering, confidence, contradictions).
+- **Phase 5 — completed:** event engine. Multi-signal clustering (version-gate
+  + title similarity + temporal window, source-scoped), inspectable confidence
+  scores with recorded reasoning inputs, corroboration across distinct
+  endpoints, and CONTESTED state preserving contradictory evidence.
+- Phases 6+ — see the plan (entity system next).
 
 ## Non-goals for V1
 

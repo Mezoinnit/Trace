@@ -25,6 +25,17 @@ interface EventRepository {
 
     fun linkEvidence(eventId: String, evidenceId: String, role: String = "SUPPORTING")
 
+    fun updateStatus(eventId: String, status: EventStatus)
+
+    /** Sets (or strengthens) the evidence role on the event-evidence link. */
+    fun markEvidenceRole(evidenceId: String, eventId: String, role: String)
+
+    /** Distinct endpoints contributing SUPPORTING evidence — corroboration signal. */
+    fun countDistinctSupportingEndpoints(eventId: String): Int
+
+    /** Stores a recomputed confidence band/score/reasoning on an event. */
+    fun updateConfidence(eventId: String, band: String, score: Double, reasoning: Map<String, Double>)
+
     fun findById(id: String): Event?
 
     /**
@@ -34,6 +45,9 @@ interface EventRepository {
     fun feedPage(cursor: String?, limit: Int): EventFeedPage
 
     fun latestDiscovered(limit: Int): List<Event>
+
+    /** Recent events with evidence contributed by this source (clustering scope). */
+    fun latestDiscoveredBySource(sourceId: String, limit: Int): List<Event>
 }
 
 interface WatchRepository {

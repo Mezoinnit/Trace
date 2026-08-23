@@ -1,23 +1,31 @@
 package com.mezo.trace.application.usecase.intelligence
 
 import com.mezo.trace.application.port.EventRepository
+import com.mezo.trace.application.port.NormalizedItem
+import com.mezo.trace.application.port.SourceRepository
 import com.mezo.trace.application.port.TxRunner
 import com.mezo.trace.application.usecase.evidence.IngestEvidence
 import com.mezo.trace.domain.Event
 import com.mezo.trace.domain.EventStatus
 import com.mezo.trace.domain.SourceEndpoint
+import com.mezo.trace.domain.TrustClassification
 import java.util.UUID
 
 /**
- * Phase 4 vertical slice: deterministic SOFTWARE_RELEASE events from GitHub
- * release evidence (plan Phase 4). No AI involved — structured provider data.
+ * Phase 4/5 event derivation from release evidence.
  *
- * Replay safety: the event's external_ref (provider + external_id) is a
- * unique key, so re-processing the same release never duplicates (Rule 4).
- * Full clustering/dedup/confidence arrives in Phase 5 behind the same seam.
+ * - **Replay safety:** exact `external_ref` (provider + external_id) hits
+ *   attach without duplicating (Rule 4).
+ * - **Clustering (Phase 5):** items from OTHER providers describing the same
+ *   release attach to the cluster representative via multi-signal similarity
+ *   instead of creating duplicates (plan §13).
+ * - **Confidence (Phase 5):** every create/attach recomputes an inspectable
+ *   score with corroboration across distinct endpoints (plan §15).
  */
 class DeriveEventsFromEvidence(
     private val events: EventRepository,
+    private val sources: SourceRepository,
+    private val clusterer: EventClusterer,
     private val tx: TxRunner,
 ) {
 
@@ -40,39 +48,96 @@ class DeriveEventsFromEvidence(
         val item = touch.item
         val provider = item.metadata["provider"] ?: "UNKNOWN"
 
-        val existing = events.findByExternalRef(provider, item.externalId)
-        val event = existing ?: run {
-            val isPrerelease = item.metadata["prerelease"] == "true"
-            val isDraft = item.metadata["draft"] == "true"
-            val created = Event(
-                id = UUID.randomUUID().toString(),
-                type = EVENT_TYPE_SOFTWARE_RELEASE,
-                title = item.title ?: "Release ${item.externalId}",
-                summary = item.contentPreview,
-                occurredAt = item.publishedAt,
-                discoveredAt = java.time.Instant.now(),
-                confidence = CONFIDENCE_HIGH, // first-party structured provider data
-                significance = if (isPrerelease || isDraft) SIGNIFICANCE_LOW else SIGNIFICANCE_MEDIUM,
-                status = EventStatus.CONFIRMED,
-                externalRef = mapOf(
-                    REF_PROVIDER to provider,
-                    REF_EXTERNAL_ID to item.externalId,
-                    REF_ENDPOINT_ID to endpoint.id,
-                ),
-                createdAt = java.time.Instant.now(),
-                updatedAt = java.time.Instant.now(),
-            )
-            if (!events.insert(created)) {
-                // Raced with another worker; treat as existing (idempotent).
-                events.findByExternalRef(provider, item.externalId) ?: return null
-            } else {
-                created
-            }
+        // 1. Exact provider identity → the same real-world release.
+        events.findByExternalRef(provider, item.externalId)?.let { existing ->
+            recomputeConfidence(existing.id, endpoint)
+            return existing
         }
 
-        events.linkEvidence(event.id, touch.evidenceId)
-        return event
+        // 2. Multi-signal clustering against recent same-type events.
+        val decision = clusterer.findCluster(
+            type = EVENT_TYPE_SOFTWARE_RELEASE,
+            item = item,
+            occurredAt = item.publishedAt,
+            sourceId = endpoint.sourceId,
+        )
+        decision.attachTo?.let { representative ->
+            events.linkEvidence(representative.id, touch.evidenceId)
+            recomputeConfidence(representative.id, endpoint)
+            return representative
+        }
+
+        // 3. Genuinely new event.
+        val isPrerelease = item.metadata["prerelease"] == "true"
+        val isDraft = item.metadata["draft"] == "true"
+        val trust = sourceTrust(endpoint.sourceId)
+        val created = Event(
+            id = UUID.randomUUID().toString(),
+            type = EVENT_TYPE_SOFTWARE_RELEASE,
+            title = item.title ?: "Release ${item.externalId}",
+            summary = item.contentPreview,
+            occurredAt = item.publishedAt,
+            discoveredAt = java.time.Instant.now(),
+            confidence = CONFIDENCE_MEDIUM,
+            significance = if (isPrerelease || isDraft) SIGNIFICANCE_LOW else SIGNIFICANCE_MEDIUM,
+            status = EventStatus.CONFIRMED,
+            externalRef = mapOf(
+                REF_PROVIDER to provider,
+                REF_EXTERNAL_ID to item.externalId,
+                REF_ENDPOINT_ID to endpoint.id,
+            ),
+            createdAt = java.time.Instant.now(),
+            updatedAt = java.time.Instant.now(),
+        )
+        if (!events.insert(created)) {
+            // Raced with another worker; treat as existing (idempotent).
+            val raced = events.findByExternalRef(provider, item.externalId) ?: return null
+            events.linkEvidence(raced.id, touch.evidenceId)
+            return raced
+        }
+
+        events.linkEvidence(created.id, touch.evidenceId)
+
+        // Seed confidence for the new event.
+        val scored = ConfidenceCalculator.calculate(
+            ConfidenceCalculator.Inputs(
+                sourceTrust = trust,
+                distinctSupportingEndpoints = 1,
+                firstPartyConfirmation = trust == TrustClassification.FIRST_PARTY ||
+                    trust == TrustClassification.OFFICIAL,
+                contradicted = false,
+                hasStableExternalId = true,
+            ),
+        )
+        events.updateConfidence(created.id, scored.band, scored.score, scored.reasoning)
+        return created.copy(
+            confidenceScore = scored.score,
+            confidenceReasoning = scored.reasoning,
+            confidence = scored.band,
+        )
     }
+
+    /** Recomputes inspectable confidence after evidence was attached. */
+    private fun recomputeConfidence(eventId: String, endpoint: SourceEndpoint) {
+        val endpoints = events.countDistinctSupportingEndpoints(eventId)
+        val event = events.findById(eventId) ?: return
+        val trust = sourceTrust(endpoint.sourceId)
+
+        val scored = ConfidenceCalculator.calculate(
+            ConfidenceCalculator.Inputs(
+                sourceTrust = trust,
+                distinctSupportingEndpoints = endpoints,
+                firstPartyConfirmation = trust == TrustClassification.FIRST_PARTY ||
+                    trust == TrustClassification.OFFICIAL,
+                contradicted = event.status == EventStatus.CONTESTED,
+                hasStableExternalId = true,
+            ),
+        )
+        events.updateConfidence(eventId, scored.band, scored.score, scored.reasoning)
+    }
+
+    private fun sourceTrust(sourceId: String): TrustClassification =
+        sources.findById(sourceId)?.trust ?: TrustClassification.UNKNOWN
 
     companion object {
         const val EVENT_TYPE_SOFTWARE_RELEASE = "SOFTWARE_RELEASE"
@@ -80,7 +145,7 @@ class DeriveEventsFromEvidence(
         const val REF_PROVIDER = "provider"
         const val REF_EXTERNAL_ID = "external_id"
         const val REF_ENDPOINT_ID = "endpoint_id"
-        const val CONFIDENCE_HIGH = "HIGH"
+        const val CONFIDENCE_MEDIUM = "MEDIUM"
         const val SIGNIFICANCE_MEDIUM = "MEDIUM"
         const val SIGNIFICANCE_LOW = "LOW"
     }
