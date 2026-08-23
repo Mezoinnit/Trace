@@ -356,7 +356,8 @@ levels (SECURITY.md §5). Over-limit returns `429` with a `Retry-After` header
 and a `RATE_LIMITED` error envelope. Phase 1 defaults (configurable via env):
 auth routes 10/min per client IP; general API 120/min per user (IP before
 authentication). Single-instance store; shared store deferred until scale
-requires it.
+requires it. A dedicated stricter bucket for expensive operations
+(source resolution, search) arrives with Phase 8/14 ops hardening.
 
 ## Versioning and compatibility
 

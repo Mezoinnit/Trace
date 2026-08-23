@@ -31,4 +31,16 @@ interface EntityRepository {
 
     /** Events referencing this entity, newest first (timelines, Phase 12). */
     fun eventsForEntity(entityId: String, limit: Int): List<com.mezo.trace.domain.Event>
+
+    /**
+     * False-merge recovery primitive (plan §4.11, ADR-004): moves identifiers,
+     * aliases, and event links from [loserId] to [survivorId] and marks the
+     * loser as merged. Never deletes the loser row.
+     */
+    fun mergeInto(loserId: String, survivorId: String)
+
+    /** Snapshot for audit/reversal bookkeeping. */
+    fun identifiersOf(entityId: String): List<com.mezo.trace.domain.EntityIdentifier>
+
+    fun aliasesOf(entityId: String): List<String>
 }

@@ -311,6 +311,25 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
         }
     }
 
+    override fun update(watch: Watch) {
+        sql.current().prepareStatement(
+            """
+            UPDATE watches SET name = ?, endpoint_ids = ?::jsonb, event_types = ?::jsonb,
+                               status = ?, version = ?, updated_at = ?
+            WHERE id = ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setString(1, watch.name)
+            ps.setString(2, listJson(watch.endpointIds.toList()))
+            ps.setString(3, listJson(watch.eventTypes.toList()))
+            ps.setString(4, watch.status.name)
+            ps.setInt(5, watch.version)
+            ps.setInstant(6, watch.updatedAt)
+            ps.setObject(7, UUID.fromString(watch.id))
+            ps.executeUpdate()
+        }
+    }
+
     private fun ResultSet.toWatch(): Watch = Watch(
         id = getObject("id", UUID::class.java).toString(),
         workspaceId = getObject("workspace_id", UUID::class.java).toString(),

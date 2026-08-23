@@ -78,6 +78,8 @@ Implemented in `V2__auth_tenancy.sql` (Phase 1). Only hashes are persisted.
 
 ### devices
 
+**Planned migration: Phase 9 (notifications).**
+
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
@@ -340,6 +342,8 @@ Watch `definition` shape is specified in WATCH_MODEL.md. Complexity is bounded
 
 ### notifications
 
+**Planned migration: Phase 9 (FCM dispatch).**
+
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
@@ -354,6 +358,8 @@ Watch `definition` shape is specified in WATCH_MODEL.md. Complexity is bounded
 | UNIQUE (alert_id, device_id) | | delivery idempotency (ADR-012) |
 
 ### jobs
+
+**Planned migration: Phase 8 (scheduler/workers).**
 
 PostgreSQL job queue (ADR-008).
 
@@ -398,6 +404,8 @@ REFRESH_TOKEN_REUSE`.
 | INDEX (action, created_at DESC) | | |
 
 ### ai_operations
+
+**Planned migration: Phase 10 (AI layer).**
 
 Reproducibility metadata for AI-assisted decisions (ADR-007).
 

@@ -60,6 +60,9 @@ interface WatchRepository {
     fun findActiveForEndpoint(endpointId: String): List<Watch>
 
     fun setStatus(id: String, status: String, now: Instant)
+
+    /** Full-row update; caller owns optimistic-lock checks (plan §24). */
+    fun update(watch: Watch)
 }
 
 interface AlertRepository {

@@ -159,9 +159,96 @@ class JdbcEntityRepository(private val sql: SqlConnections) : EntityRepository {
         type = EntityType.valueOf(getString("type")),
         canonicalName = getString("canonical_name"),
         description = getObject("description") as String?,
+        mergedIntoEntityId = getObject("merged_into_entity_id")
+            ?.let { getObject("merged_into_entity_id", UUID::class.java).toString() },
         createdAt = instant("created_at"),
         updatedAt = instant("updated_at"),
     )
+
+    override fun identifiersOf(entityId: String): List<com.mezo.trace.domain.EntityIdentifier> {
+        val uuid = runCatching { UUID.fromString(entityId) }.getOrNull() ?: return emptyList()
+        return sql.current().prepareStatement(
+            "SELECT id_type, id_value FROM entity_identifiers WHERE entity_id = ?",
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<com.mezo.trace.domain.EntityIdentifier>()
+                while (rs.next()) out += com.mezo.trace.domain.EntityIdentifier(rs.getString("id_type"), rs.getString("id_value"))
+                out
+            }
+        }
+    }
+
+    override fun aliasesOf(entityId: String): List<String> {
+        val uuid = runCatching { UUID.fromString(entityId) }.getOrNull() ?: return emptyList()
+        return sql.current().prepareStatement(
+            "SELECT alias FROM entity_aliases WHERE entity_id = ?",
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<String>()
+                while (rs.next()) out += rs.getString("alias")
+                out
+            }
+        }
+    }
+
+    override fun mergeInto(loserId: String, survivorId: String) {
+        val loser = runCatching { UUID.fromString(loserId) }.getOrNull() ?: return
+        val survivor = UUID.fromString(survivorId)
+
+        // Move identifiers that do not already exist on the survivor, then
+        // drop the remainder (their values are preserved on the survivor).
+        sql.current().prepareStatement(
+            """
+            UPDATE entity_identifiers i
+            SET entity_id = ?
+            WHERE i.entity_id = ?
+              AND NOT EXISTS (
+                SELECT 1 FROM entity_identifiers x
+                WHERE x.id_type = i.id_type AND x.id_value = i.id_value AND x.entity_id = ?
+              )
+            """.trimIndent(),
+        ).use { ps -> ps.setObject(1, survivor); ps.setObject(2, loser); ps.setObject(3, survivor); ps.executeUpdate() }
+
+        // Same pattern for aliases.
+        sql.current().prepareStatement(
+            """
+            UPDATE entity_aliases a
+            SET entity_id = ?
+            WHERE a.entity_id = ?
+              AND NOT EXISTS (
+                SELECT 1 FROM entity_aliases x
+                WHERE lower(x.alias) = lower(a.alias) AND x.entity_id = ?
+              )
+            """.trimIndent(),
+        ).use { ps -> ps.setObject(1, survivor); ps.setObject(2, loser); ps.setObject(3, survivor); ps.executeUpdate() }
+
+        // Event links converge on the survivor.
+        sql.current().prepareStatement(
+            """
+            UPDATE event_entities ee
+            SET entity_id = ?
+            WHERE ee.entity_id = ?
+              AND NOT EXISTS (
+                SELECT 1 FROM event_entities x
+                WHERE x.event_id = ee.event_id AND x.entity_id = ?
+              )
+            """.trimIndent(),
+        ).use { ps -> ps.setObject(1, survivor); ps.setObject(2, loser); ps.setObject(3, survivor); ps.executeUpdate() }
+
+        sql.current().prepareStatement("DELETE FROM entity_identifiers WHERE entity_id = ?").use { ps ->
+            ps.setObject(1, loser); ps.executeUpdate()
+        }
+        sql.current().prepareStatement("DELETE FROM entity_aliases WHERE entity_id = ?").use { ps ->
+            ps.setObject(1, loser); ps.executeUpdate()
+        }
+
+        // Mark the loser — its row is never deleted (Rule 5).
+        sql.current().prepareStatement(
+            "UPDATE entities SET merged_into_entity_id = ?, updated_at = now() WHERE id = ?",
+        ).use { ps -> ps.setObject(1, survivor); ps.setObject(2, loser); ps.executeUpdate() }
+    }
 
     private companion object {
         val EVENT_MAPPER = EventRowMapper()

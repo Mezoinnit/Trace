@@ -72,7 +72,9 @@ scraping after explicit user confirmation or clear source-resolution UI.
 For arbitrary user URLs (see plan §8):
 
 1. Validate URL; enforce HTTPS unless HTTP is explicitly required and allowed.
-2. Check robots policy where applicable.
+2. Check robots policy where applicable (implemented with generic-web
+   extraction in Phase 13; resolution probing currently fetches only pages a
+   user explicitly submits).
 3. Detect RSS → Atom → sitemaps → JSON-LD → structured metadata → canonical URL.
 4. Fall back to HTML extraction only when required, with strict resource limits.
 5. Record parser and source health. Never assume arbitrary HTML is stable.
@@ -132,7 +134,9 @@ ANY → DISABLED
 ```
 
 Failed sources are visible to the user and observable by operators. Never
-silently stop monitoring.
+silently stop monitoring. `STALE` transitions are computed by the Phase 8
+scheduler from `last_item_at` freshness; earlier phases set the failure states
+directly.
 
 ## Adapter contract tests
 

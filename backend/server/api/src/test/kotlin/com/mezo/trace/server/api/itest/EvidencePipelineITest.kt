@@ -81,6 +81,47 @@ class EvidencePipelineITest {
         assertEquals(1, evidenceCount(endpointId))
     }
 
+    @Test
+    fun `one fetch cycle backfills multiple cursor pages within the bound`() = testApplication {
+        val fetcher = StubHttpFetcher()
+        val page = { from: Long, count: Int ->
+            (from until from + count).joinToString(",", "[", "]") { id ->
+                """{"id": $id, "tag_name": "v0.$id", "name": null,
+                    "html_url": "https://github.com/bk2/widget/releases/tag/v0.$id",
+                    "published_at": "2026-08-01T10:00:00Z", "prerelease": false,
+                    "draft": false, "body": "b"}"""
+            }
+        }
+        val base = Regex.escape("https://api.github.com/repos/bk2/widget/releases?per_page=30&page=")
+        fetcher.serve(base + "1", StubHttpFetcher.Response(body = page(1, 30).toByteArray()))
+        fetcher.serve(base + "2", StubHttpFetcher.Response(body = page(31, 30).toByteArray()))
+        fetcher.serve(base + "3", StubHttpFetcher.Response(body = page(61, 5).toByteArray())) // short page → stop
+
+        val container = app(fetcher = fetcher)
+        val client = createClient { expectSuccess = false }
+        val session = register(client, "bk-${UUID.randomUUID()}@example.com")
+        client.post("/api/v1/sources") {
+            header(HttpHeaders.Authorization, "Bearer ${session.accessToken()}")
+            contentType(ContentType.Application.Json)
+            setBody("""{"endpoint_uri":"github://bk2/widget/releases","adapter_id":"github"}""")
+        }
+        val endpointId = container.txRunner.run {
+            container.sourceEndpoints.listBySourceId(
+                container.sources.findByCanonicalIdentity("GITHUB", "REPOSITORY", "bk2/widget")!!.id,
+            ).single().id
+        }
+
+        val outcome = container.fetchEndpointNow.execute(endpointId)
+            as com.mezo.trace.application.usecase.sources.FetchEndpointNow.Outcome.Success
+
+        assertEquals(65, outcome.evidenceCreated, "all pages ingested in one cycle")
+        assertEquals(3, fetcher.requestedUrls.size, "bounded loop: page 1 + 2 follow-ups")
+
+        // Replay: everything already stored, nothing new.
+        container.fetchEndpointNow.execute(endpointId)
+        assertEquals(65, evidenceCount(endpointId))
+    }
+
     private suspend fun registerSourceAndGetEndpointId(
         client: io.ktor.client.HttpClient,
         container: ApiContainer,
