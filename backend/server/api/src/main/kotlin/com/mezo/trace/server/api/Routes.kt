@@ -299,6 +299,15 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
                 request.name,
                 request.endpointIds.toSet(),
                 request.eventTypes.toSet(),
+                com.mezo.trace.application.usecase.watches.CreateWatch.Rules(
+                    entityIds = request.entityIds.toSet(),
+                    keywordsInclude = request.keywordsInclude,
+                    keywordsExclude = request.keywordsExclude,
+                    semantic = request.semantic,
+                    maxAgeHours = request.maxAgeHours,
+                    minSignificance = request.minSignificance,
+                    minConfidence = request.minConfidence,
+                ),
             )
             call.respond(HttpStatusCode.Created, watchDto(watch))
         }
@@ -335,6 +344,25 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
                     status = body.status,
                     endpointIds = body.endpointIds?.toSet(),
                     eventTypes = body.eventTypes?.toSet(),
+                    rules = body.let {
+                        if (it.entityIds != null || it.keywordsInclude != null ||
+                            it.keywordsExclude != null || it.semantic != null ||
+                            it.maxAgeHours != null || it.minSignificance != null ||
+                            it.minConfidence != null
+                        ) {
+                            com.mezo.trace.application.usecase.watches.CreateWatch.Rules(
+                                entityIds = it.entityIds?.toSet() ?: emptySet(),
+                                keywordsInclude = it.keywordsInclude ?: emptyList(),
+                                keywordsExclude = it.keywordsExclude ?: emptyList(),
+                                semantic = it.semantic,
+                                maxAgeHours = it.maxAgeHours,
+                                minSignificance = it.minSignificance,
+                                minConfidence = it.minConfidence,
+                            )
+                        } else {
+                            null
+                        }
+                    },
                 ),
             )
             call.respond(HttpStatusCode.OK, watchDto(updated))
@@ -421,6 +449,13 @@ private fun watchDto(watch: com.mezo.trace.domain.Watch) = WatchDto(
     name = watch.name,
     endpointIds = watch.endpointIds.toList(),
     eventTypes = watch.eventTypes.toList(),
+    entityIds = watch.entityIds.toList(),
+    keywordsInclude = watch.keywordsInclude,
+    keywordsExclude = watch.keywordsExclude,
+    semantic = watch.semantic,
+    maxAgeHours = watch.maxAgeHours,
+    minSignificance = watch.minSignificance,
+    minConfidence = watch.minConfidence,
     status = watch.status.name,
     version = watch.version,
     createdAt = watch.createdAt.toString(),

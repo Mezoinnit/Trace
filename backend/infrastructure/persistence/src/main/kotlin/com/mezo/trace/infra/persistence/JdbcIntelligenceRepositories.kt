@@ -246,8 +246,11 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
         sql.current().prepareStatement(
             """
             INSERT INTO watches (id, workspace_id, created_by, name, endpoint_ids, event_types,
+                                 entity_ids, keywords_include, keywords_exclude, semantic,
+                                 max_age_hours, min_significance, min_confidence,
                                  status, version, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?,
+                    ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
         ).use { ps ->
             ps.setObject(1, UUID.fromString(watch.id))
@@ -256,10 +259,18 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
             ps.setString(4, watch.name)
             ps.setString(5, listJson(watch.endpointIds.toList()))
             ps.setString(6, listJson(watch.eventTypes.toList()))
-            ps.setString(7, watch.status.name)
-            ps.setInt(8, watch.version)
-            ps.setInstant(9, watch.createdAt)
-            ps.setInstant(10, watch.updatedAt)
+            ps.setString(7, listJson(watch.entityIds.toList()))
+            ps.setString(8, listJson(watch.keywordsInclude))
+            ps.setString(9, listJson(watch.keywordsExclude))
+            ps.setNullableString(10, watch.semantic)
+            val maxAgeInsert = watch.maxAgeHours
+            if (maxAgeInsert != null) ps.setInt(11, maxAgeInsert) else ps.setNull(11, java.sql.Types.INTEGER)
+            ps.setNullableString(12, watch.minSignificance)
+            ps.setNullableString(13, watch.minConfidence)
+            ps.setString(14, watch.status.name)
+            ps.setInt(15, watch.version)
+            ps.setInstant(16, watch.createdAt)
+            ps.setInstant(17, watch.updatedAt)
             ps.executeUpdate()
         }
     }
@@ -315,6 +326,9 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
         sql.current().prepareStatement(
             """
             UPDATE watches SET name = ?, endpoint_ids = ?::jsonb, event_types = ?::jsonb,
+                               entity_ids = ?::jsonb, keywords_include = ?::jsonb,
+                               keywords_exclude = ?::jsonb, semantic = ?,
+                               max_age_hours = ?, min_significance = ?, min_confidence = ?,
                                status = ?, version = ?, updated_at = ?
             WHERE id = ?
             """.trimIndent(),
@@ -322,10 +336,18 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
             ps.setString(1, watch.name)
             ps.setString(2, listJson(watch.endpointIds.toList()))
             ps.setString(3, listJson(watch.eventTypes.toList()))
-            ps.setString(4, watch.status.name)
-            ps.setInt(5, watch.version)
-            ps.setInstant(6, watch.updatedAt)
-            ps.setObject(7, UUID.fromString(watch.id))
+            ps.setString(4, listJson(watch.entityIds.toList()))
+            ps.setString(5, listJson(watch.keywordsInclude))
+            ps.setString(6, listJson(watch.keywordsExclude))
+            ps.setNullableString(7, watch.semantic)
+            val maxAgeUpdate = watch.maxAgeHours
+            if (maxAgeUpdate != null) ps.setInt(8, maxAgeUpdate) else ps.setNull(8, java.sql.Types.INTEGER)
+            ps.setNullableString(9, watch.minSignificance)
+            ps.setNullableString(10, watch.minConfidence)
+            ps.setString(11, watch.status.name)
+            ps.setInt(12, watch.version)
+            ps.setInstant(13, watch.updatedAt)
+            ps.setObject(14, UUID.fromString(watch.id))
             ps.executeUpdate()
         }
     }
@@ -337,6 +359,13 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
         name = getString("name"),
         endpointIds = decodeList(getString("endpoint_ids")).toSet(),
         eventTypes = decodeList(getString("event_types")).toSet(),
+        entityIds = decodeList(getString("entity_ids")).toSet(),
+        keywordsInclude = decodeList(getString("keywords_include")),
+        keywordsExclude = decodeList(getString("keywords_exclude")),
+        semantic = getObject("semantic") as String?,
+        maxAgeHours = getInt("max_age_hours").let { if (wasNull()) null else it },
+        minSignificance = getString("min_significance"),
+        minConfidence = getString("min_confidence"),
         status = com.mezo.trace.domain.WatchStatus.valueOf(getString("status")),
         version = getInt("version"),
         createdAt = instant("created_at"),

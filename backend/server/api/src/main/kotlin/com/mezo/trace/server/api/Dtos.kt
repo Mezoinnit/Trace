@@ -210,6 +210,13 @@ data class WatchCreateRequest(
     val name: String,
     @SerialName("endpoint_ids") val endpointIds: List<String>,
     @SerialName("event_types") val eventTypes: List<String> = emptyList(),
+    @SerialName("entity_ids") val entityIds: List<String> = emptyList(),
+    @SerialName("keywords_include") val keywordsInclude: List<String> = emptyList(),
+    @SerialName("keywords_exclude") val keywordsExclude: List<String> = emptyList(),
+    val semantic: String? = null,
+    @SerialName("max_age_hours") val maxAgeHours: Int? = null,
+    @SerialName("min_significance") val minSignificance: String? = null,
+    @SerialName("min_confidence") val minConfidence: String? = null,
 )
 
 @Serializable
@@ -219,6 +226,13 @@ data class WatchDto(
     val name: String,
     @SerialName("endpoint_ids") val endpointIds: List<String>,
     @SerialName("event_types") val eventTypes: List<String>,
+    @SerialName("entity_ids") val entityIds: List<String>,
+    @SerialName("keywords_include") val keywordsInclude: List<String>,
+    @SerialName("keywords_exclude") val keywordsExclude: List<String>,
+    val semantic: String?,
+    @SerialName("max_age_hours") val maxAgeHours: Int?,
+    @SerialName("min_significance") val minSignificance: String?,
+    @SerialName("min_confidence") val minConfidence: String?,
     val status: String,
     /** Optimistic-lock token; echo it in PATCH (plan §24). */
     val version: Int,
@@ -263,4 +277,11 @@ data class WatchUpdateRequest(
     val status: String? = null,
     @SerialName("endpoint_ids") val endpointIds: List<String>? = null,
     @SerialName("event_types") val eventTypes: List<String>? = null,
+    @SerialName("entity_ids") val entityIds: List<String>? = null,
+    @SerialName("keywords_include") val keywordsInclude: List<String>? = null,
+    @SerialName("keywords_exclude") val keywordsExclude: List<String>? = null,
+    val semantic: String? = null,
+    @SerialName("max_age_hours") val maxAgeHours: Int? = null,
+    @SerialName("min_significance") val minSignificance: String? = null,
+    @SerialName("min_confidence") val minConfidence: String? = null,
 )

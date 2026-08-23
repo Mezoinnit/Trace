@@ -18,6 +18,7 @@ class MatchWatchesForEvent(
     private val watches: WatchRepository,
     private val alerts: AlertRepository,
     private val audit: AuditLogRepository,
+    private val entities: com.mezo.trace.application.port.EntityRepository?,
     private val tx: TxRunner,
 ) {
 
@@ -33,8 +34,23 @@ class MatchWatchesForEvent(
             ?: return MatchSummary(0, 0, emptySet())
 
         return tx.run {
-            val candidates = watches.findActiveForEndpoint(endpointId)
-                .filter { watch -> watch.eventTypes.isEmpty() || watch.eventTypes.contains(event.type) }
+            // Entity links for entity-constrained watches (Phase 6 graph).
+            val linkedEntityIds = entities
+                ?.listEventEntities(event.id)
+                ?.map { it.id }
+                ?.toSet()
+                ?: emptySet()
+
+            val candidates = watches
+                .findActiveForEndpoint(endpointId)
+                .filter { watch ->
+                    // Phase 7 full rule evaluation — deterministic only;
+                    // the semantic field is stored but not matched until the
+                    // AI layer exists.
+                    com.mezo.trace.application.usecase.watches.WatchEvaluator.evaluate(
+                        watch, event, linkedEntityIds,
+                    ).matched
+                }
 
             var created = 0
             val workspaces = mutableSetOf<String>()

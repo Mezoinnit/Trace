@@ -124,7 +124,11 @@ Current status:
   watch GET/PATCH + optimistic locking + lifecycle audit, account-deletion
   tests, bounded pagination backfill, shared adapter contract suite
   (114 tests).
-- Phases 7+ — see the plan (watch engine: full rule set next).
+- **Phase 7 — completed:** watch engine full rules. Entity filters, keyword
+  include/exclude, time windows, significance/confidence thresholds — all in
+  one pure deterministic `WatchEvaluator` with recorded rejection reasons;
+  wired into matching with exactly-once alerts intact.
+- Phases 8+ — see the plan (scheduler + adaptive monitoring next).
 
 ## Non-goals for V1
 
