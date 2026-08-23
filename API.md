@@ -147,37 +147,78 @@ enumeration (ADR-010).
 
 ### Source resolution and sources
 
+Implemented in Phase 2. Sources are global shared intelligence (ADR-001);
+registration is audited. Non-member rules do not apply here — any
+authenticated user may resolve/register/list global sources.
+
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `/api/v1/sources/resolve` | URL → provider/endpoint/capabilities proposal (Phase 2) |
-| POST | `/api/v1/sources` | create from a confirmed resolution |
-| GET | `/api/v1/sources` | list |
-| GET | `/api/v1/sources/{id}` | detail incl. health |
-| PATCH | `/api/v1/sources/{id}` | enable/disable |
-| GET | `/api/v1/sources/{id}/endpoints` | endpoints for a source |
+| POST | `/api/v1/sources/resolve` | URL → provider/endpoint/capabilities proposal |
+| POST | `/api/v1/sources` | register a confirmed proposal (endpoint_uri + adapter_id) |
+| GET | `/api/v1/sources` | registry list with endpoints |
+| GET | `/api/v1/sources/{id}` | detail incl. per-endpoint health |
+| PATCH | `/api/v1/sources/{id}` | enable/disable (cascades to endpoints, audited) |
 
 `POST /api/v1/sources/resolve`:
 
 ```json
-{
-  "input": "https://github.com/androidx/androidx/releases"
-}
+{ "input": "https://github.com/androidx/androidx/releases" }
 ```
 
 Response:
 
 ```json
 {
+  "input_url": "https://github.com/androidx/androidx/releases",
   "provider": "GITHUB",
-  "resource": "REPOSITORY",
-  "owner": "androidx",
-  "repository": "androidx",
-  "endpoint": "github://androidx/androidx/releases",
+  "source_type": "REPOSITORY",
+  "canonical_identity": "androidx/androidx",
+  "endpoint_uri": "github://androidx/androidx/releases",
+  "display_url": "https://github.com/androidx/androidx/releases",
   "endpoint_type": "RELEASES",
-  "capabilities": ["RELEASES"],
-  "adapter": "github"
+  "adapter_id": "github",
+  "capabilities": ["RELEASES", "CONDITIONAL_POLL", "PAGINATED", "RATE_LIMITED_API"],
+  "trust": "OFFICIAL",
+  "display_name": "androidx/androidx",
+  "notes": ["exact endpoint: repository releases"]
 }
 ```
+
+HTML pages with a declared feed return the feed as a structured alternative
+(noted); pages without structure return an explicit degraded `web_page`
+proposal. Unsupported GitHub paths are rejected — never silently broadened.
+
+`POST /api/v1/sources` — echo only what you are confirming:
+
+```json
+{ "endpoint_uri": "github://androidx/androidx/releases", "adapter_id": "github" }
+```
+
+All metadata (provider, type, capabilities, trust) is derived server-side from
+the validated adapter; `400 VALIDATION_ERROR` for unknown adapters or
+unsupported endpoints. Re-registering the same endpoint converges on the same
+global rows (idempotent). `201 Created` returns the source detail:
+
+```json
+{
+  "id": "…",
+  "provider": "GITHUB",
+  "source_type": "REPOSITORY",
+  "canonical_identity": "androidx/androidx",
+  "trust": "OFFICIAL",
+  "status": "ACTIVE",
+  "endpoints": [
+    {
+      "endpoint": { "id": "…", "endpoint_uri": "…", "adapter": "github", "status": "ACTIVE", … },
+      "health": { "state": "HEALTHY", "failure_count": 0, … }
+    }
+  ]
+}
+```
+
+`PATCH /api/v1/sources/{id}` body `{ "status": "DISABLED" }` → updated detail.
+Disabling cascades to endpoints and is audited (Rule 7: never silently stop
+monitoring).
 
 ### Events
 

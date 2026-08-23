@@ -98,3 +98,87 @@ data class ReadinessResponse(
     val status: String,
     val database: String,
 )
+
+// ---- Sources (Phase 2) ----
+
+@Serializable
+data class SourceResolveRequest(val input: String)
+
+@Serializable
+data class SourceProposalDto(
+    @SerialName("input_url") val inputUrl: String,
+    val provider: String,
+    @SerialName("source_type") val sourceType: String,
+    @SerialName("canonical_identity") val canonicalIdentity: String,
+    @SerialName("endpoint_uri") val endpointUri: String,
+    @SerialName("display_url") val displayUrl: String,
+    @SerialName("endpoint_type") val endpointType: String,
+    @SerialName("adapter_id") val adapterId: String,
+    val capabilities: List<String>,
+    val trust: String,
+    @SerialName("display_name") val displayName: String?,
+    val notes: List<String>,
+)
+
+@Serializable
+data class SourceCreateRequest(
+    @SerialName("endpoint_uri") val endpointUri: String,
+    @SerialName("adapter_id") val adapterId: String,
+    @SerialName("display_name") val displayName: String? = null,
+)
+
+@Serializable
+data class SourceStatusRequest(val status: String)
+
+@Serializable
+data class EndpointDto(
+    val id: String,
+    @SerialName("endpoint_uri") val endpointUri: String,
+    @SerialName("display_url") val displayUrl: String?,
+    @SerialName("endpoint_type") val endpointType: String,
+    val capabilities: List<String>,
+    val adapter: String,
+    val status: String,
+)
+
+@Serializable
+data class SourceDto(
+    val id: String,
+    val provider: String,
+    @SerialName("source_type") val sourceType: String,
+    @SerialName("canonical_identity") val canonicalIdentity: String,
+    @SerialName("display_name") val displayName: String?,
+    val trust: String,
+    val capabilities: List<String>,
+    val status: String,
+)
+
+@Serializable
+data class SourceHealthDto(
+    val state: String,
+    @SerialName("last_success_at") val lastSuccessAt: String?,
+    @SerialName("last_failure_at") val lastFailureAt: String?,
+    @SerialName("failure_count") val failureCount: Long,
+    @SerialName("consecutive_failures") val consecutiveFailures: Int,
+    @SerialName("average_latency_ms") val averageLatencyMs: Int?,
+    @SerialName("last_item_at") val lastItemAt: String?,
+)
+
+@Serializable
+data class SourceDetailDto(
+    val id: String,
+    val provider: String,
+    @SerialName("source_type") val sourceType: String,
+    @SerialName("canonical_identity") val canonicalIdentity: String,
+    @SerialName("display_name") val displayName: String?,
+    val trust: String,
+    val capabilities: List<String>,
+    val status: String,
+    val endpoints: List<SourceEndpointWithHealthDto>,
+)
+
+@Serializable
+data class SourceEndpointWithHealthDto(
+    val endpoint: EndpointDto,
+    val health: SourceHealthDto?,
+)
