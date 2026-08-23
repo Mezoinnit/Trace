@@ -1,4 +1,4 @@
-package com.mezo.trace.adapters
+package com.mezo.trace.adapters.testing
 
 import com.mezo.trace.application.port.FetchRequest
 import com.mezo.trace.application.port.FetchedResponse
@@ -8,7 +8,7 @@ import com.mezo.trace.application.port.HttpFetcher
  * Deterministic stub transport for adapter/resolver tests: serves fixture
  * bytes by URL. No network involved.
  */
-class StubFetcher(
+class StubHttpFetcher(
     private val responses: MutableMap<String, Response> = mutableMapOf(),
 ) : HttpFetcher {
 

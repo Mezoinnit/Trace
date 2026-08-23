@@ -20,8 +20,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
 /** Installs the API module against the shared embedded database. */
-fun ApplicationTestBuilder.app(authLimit: Int = 10_000, apiLimit: Int = 10_000): ApiContainer {
-    val container = ApiContainer(EmbeddedPg.dataSource(), testSecurityConfig())
+fun ApplicationTestBuilder.app(
+    authLimit: Int = 10_000,
+    apiLimit: Int = 10_000,
+    fetcher: com.mezo.trace.application.port.HttpFetcher? = null,
+): ApiContainer {
+    val container = ApiContainer(EmbeddedPg.dataSource(), testSecurityConfig(), fetcher)
     application { module(container, RateLimiters(authLimit, apiLimit)) }
     return container
 }
