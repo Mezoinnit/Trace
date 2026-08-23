@@ -1,6 +1,6 @@
 package com.mezo.trace.adapters.feed
 
-import com.mezo.trace.adapters.StubFetcher
+import com.mezo.trace.adapters.testing.StubHttpFetcher
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,7 +45,7 @@ class FeedAdaptersTest {
 
     @Test
     fun `rss items normalize with stable external ids`() {
-        val fetcher = StubFetcher(mutableMapOf("https://blog.example.com/feed.xml" to StubFetcher.Response(body = rssFixture.toByteArray())))
+        val fetcher = StubHttpFetcher(mutableMapOf("https://blog.example.com/feed.xml" to StubHttpFetcher.Response(body = rssFixture.toByteArray())))
         val adapter = RssAdapter(fetcher)
 
         val result = adapter.fetch("https://blog.example.com/feed.xml", cursor = null, knownEtag = null)
@@ -67,7 +67,7 @@ class FeedAdaptersTest {
 
     @Test
     fun `atom entries prefer atom ids and alternate links`() {
-        val fetcher = StubFetcher(mutableMapOf("https://feeds.example.com/atom.xml" to StubFetcher.Response(body = atomFixture.toByteArray())))
+        val fetcher = StubHttpFetcher(mutableMapOf("https://feeds.example.com/atom.xml" to StubHttpFetcher.Response(body = atomFixture.toByteArray())))
         val adapter = AtomAdapter(fetcher)
 
         val result = adapter.fetch("https://feeds.example.com/atom.xml", cursor = null, knownEtag = null)
@@ -81,8 +81,8 @@ class FeedAdaptersTest {
 
     @Test
     fun `304 not-modified returns no items and keeps the etag`() {
-        val fetcher = StubFetcher(
-            mutableMapOf("https://blog.example.com/feed.xml" to StubFetcher.Response(statusCode = 304, body = ByteArray(0), etag = "\"same\"")),
+        val fetcher = StubHttpFetcher(
+            mutableMapOf("https://blog.example.com/feed.xml" to StubHttpFetcher.Response(statusCode = 304, body = ByteArray(0), etag = "\"same\"")),
         )
         val adapter = RssAdapter(fetcher)
         val result = adapter.fetch("https://blog.example.com/feed.xml", cursor = null, knownEtag = "\"same\"")
@@ -99,7 +99,7 @@ class FeedAdaptersTest {
             <!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]>
             <rss version="2.0"><channel>&x;</channel></rss>
         """.trimIndent()
-        val fetcher = StubFetcher(mutableMapOf("https://evil.example/feed.xml" to StubFetcher.Response(body = xxe.toByteArray())))
+        val fetcher = StubHttpFetcher(mutableMapOf("https://evil.example/feed.xml" to StubHttpFetcher.Response(body = xxe.toByteArray())))
         val adapter = RssAdapter(fetcher)
 
         org.junit.jupiter.api.assertThrows<com.mezo.trace.application.port.FetchFailure> {

@@ -1,6 +1,6 @@
 package com.mezo.trace.adapters.github
 
-import com.mezo.trace.adapters.StubFetcher
+import com.mezo.trace.adapters.testing.StubHttpFetcher
 import com.mezo.trace.application.port.FetchFailure
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,10 +35,10 @@ class GithubAdapterTest {
         ]
     """.trimIndent()
 
-    private val fetcher = StubFetcher(
+    private val fetcher = StubHttpFetcher(
         mutableMapOf(
             Regex.escape("https://api.github.com/repos/androidx/androidx/releases?per_page=30&page=1") to
-                StubFetcher.Response(body = releasesJson().toByteArray(), etag = "\"abc123\""),
+                StubHttpFetcher.Response(body = releasesJson().toByteArray(), etag = "\"abc123\""),
         ),
     )
 
@@ -82,10 +82,10 @@ class GithubAdapterTest {
 
     @Test
     fun `rate limits surface as RATE_LIMITED failures`() {
-        val limitedFetcher = StubFetcher(
+        val limitedFetcher = StubHttpFetcher(
             mutableMapOf(
                 Regex.escape("https://api.github.com/repos/o/r/releases?per_page=30&page=1") to
-                    StubFetcher.Response(statusCode = 429, body = ByteArray(0)),
+                    StubHttpFetcher.Response(statusCode = 429, body = ByteArray(0)),
             ),
         )
         val adapter = GithubAdapter(limitedFetcher, apiBase = "https://api.github.com")

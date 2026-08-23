@@ -167,38 +167,42 @@ V1 targets public sources without credentials wherever possible.
 ### evidence
 
 Immutable source-derived records. Never overwritten; changes create versions.
+**Implemented in `V4__evidence.sql` (Phase 3).**
+
+Evidence is **global shared intelligence** (plan §34, ADR-001): it belongs to
+the ingested endpoint, not to the registering workspace, so one ingestion fans
+out to all watchers.
 
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
-| workspace_id | uuid NOT NULL | tenant-owned (who ingested it) |
-| source_id | uuid NOT NULL REFERENCES sources(id) | |
-| endpoint_id | uuid NOT NULL REFERENCES source_endpoints(id) | |
+| source_id | uuid NOT NULL REFERENCES sources(id) | provenance |
+| endpoint_id | uuid NOT NULL REFERENCES source_endpoints(id) | provenance |
 | external_id | text NOT NULL | provider item id |
 | canonical_url | text | |
-| title | text | |
-| author | text | |
+| title / author / language | text | |
 | published_at | timestamptz | |
-| discovered_at | timestamptz NOT NULL | |
-| content | text | compact/truncated; not full article bodies by default |
-| content_hash | text NOT NULL | |
+| discovered_at | timestamptz NOT NULL | first seen by the pipeline |
+| content | text | compact preview only (plan §12); full bodies not stored by default |
+| content_hash | text NOT NULL | sha-256 of content; indexed for change detection |
 | raw_payload_reference | text | object-storage ref when required |
-| metadata | jsonb | extraction/processing metadata |
-| language | text | BCP-47 |
+| metadata | jsonb NOT NULL DEFAULT '{}' | extraction/processing metadata |
 | created_at | timestamptz NOT NULL | |
-| UNIQUE (workspace_id, source_id, endpoint_id, external_id) | | idempotency key (Rule 4) |
-| UNIQUE (content_hash) | | raw dedup |
+| UNIQUE (endpoint_id, external_id) | | idempotency key (Rule 4): refetches never duplicate |
 
 ### evidence_versions
 
+**Implemented in `V4__evidence.sql` (Phase 3).** Appended when source content
+changes; never overwritten (ADR-006).
+
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
-| evidence_id | uuid NOT NULL REFERENCES evidence(id) | |
-| version | int NOT NULL | |
+| evidence_id | uuid NOT NULL REFERENCES evidence(id) ON DELETE CASCADE | |
+| version | int NOT NULL | monotonically increasing per evidence |
 | content | text | |
 | content_hash | text NOT NULL | |
-| changed_by | text | e.g. source poll |
+| changed_by | text NOT NULL DEFAULT 'source_poll' | |
 | created_at | timestamptz NOT NULL | |
 | UNIQUE (evidence_id, version) | | |
 

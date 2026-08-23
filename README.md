@@ -98,8 +98,13 @@ Current status:
   hops, redirect revalidation, size caps), adapter contract with GitHub/RSS/
   Atom adapters plus a degraded web fallback, URL→endpoint resolver with
   feed discovery, global source registry with per-endpoint health tracking,
-  `/api/v1/sources` routes. XXE-safe XML parsing. 77 tests total.
-- Phases 3+ — see the plan (evidence system next).
+  `/api/v1/sources` routes. XXE-safe XML parsing.
+- **Phase 3 — completed:** evidence system. Immutable evidence keyed by
+  `(endpoint_id, external_id)` so repeated fetches never duplicate;
+  content changes append `evidence_versions` (history preserved, ADR-006);
+  full provenance (source, endpoint, external id, canonical URL, timestamps)
+  on every record; fetch pipeline persists normalized items automatically.
+- Phases 4+ — see the plan (GitHub end-to-end vertical slice next).
 
 ## Non-goals for V1
 

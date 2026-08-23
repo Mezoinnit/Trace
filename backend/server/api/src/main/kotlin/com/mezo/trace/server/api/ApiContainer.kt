@@ -34,6 +34,7 @@ import com.mezo.trace.application.usecase.workspace.ListWorkspaces
 import com.mezo.trace.application.usecase.workspace.RenameWorkspace
 import com.mezo.trace.infra.fetch.SafeHttpFetcher
 import com.mezo.trace.infra.persistence.JdbcAuditLogRepository
+import com.mezo.trace.infra.persistence.JdbcEvidenceRepository
 import com.mezo.trace.infra.persistence.JdbcRefreshTokenRepository
 import com.mezo.trace.infra.persistence.JdbcSourceEndpointRepository
 import com.mezo.trace.infra.persistence.JdbcSourceHealthRepository
@@ -60,6 +61,8 @@ object SystemClock : ClockPort {
 class ApiContainer(
     private val dataSource: DataSource,
     security: SecurityConfig,
+    /** Test seam: override the outbound transport with a deterministic stub. */
+    fetcherOverride: com.mezo.trace.application.port.HttpFetcher? = null,
 ) {
 
     val clock: ClockPort = SystemClock
@@ -79,7 +82,8 @@ class ApiContainer(
     val tokenIssuer: TokenIssuer = JwtTokenService(security.jwtSecret, clock, security.accessTokenTtl)
 
     // Outbound fetching (SSRF-hardened) and the adapter registry.
-    val fetcher = SafeHttpFetcher(allowHttp = System.getenv("FETCH_ALLOW_HTTP") == "true")
+    val fetcher: com.mezo.trace.application.port.HttpFetcher =
+        fetcherOverride ?: SafeHttpFetcher(allowHttp = System.getenv("FETCH_ALLOW_HTTP") == "true")
     val adapterRegistry = AdapterRegistry(fetcher)
 
     val sessionIssuer = AuthSessionIssuer(refreshTokens, tokenIssuer, clock, security.refreshTokenTtl)
@@ -103,7 +107,11 @@ class ApiContainer(
     val listSources = ListSources(sources, sourceEndpoints, txRunner)
     val getSourceDetail = GetSourceDetail(sources, sourceEndpoints, sourceHealth, txRunner)
     val setSourceStatus = SetSourceStatus(sources, sourceEndpoints, auditLog, txRunner, clock)
-    val fetchEndpointNow = FetchEndpointNow(sourceEndpoints, sourceHealth, auditLog, adapterRegistry, txRunner, clock)
+    val ingestEvidence = com.mezo.trace.application.usecase.evidence.IngestEvidence(
+        JdbcEvidenceRepository(sql),
+        txRunner,
+    )
+    val fetchEndpointNow = FetchEndpointNow(sourceEndpoints, sourceHealth, auditLog, adapterRegistry, ingestEvidence, txRunner, clock)
 
     fun databaseReady(): Boolean = runCatching {
         dataSource.connection.use { connection ->

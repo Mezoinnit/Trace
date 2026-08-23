@@ -26,6 +26,7 @@ class FetchEndpointNow(
     private val health: SourceHealthRepository,
     private val audit: AuditLogRepository,
     private val adapterSelector: AdapterSelector,
+    private val ingestEvidence: com.mezo.trace.application.usecase.evidence.IngestEvidence,
     private val tx: TxRunner,
     private val clock: ClockPort,
 ) {
@@ -61,6 +62,15 @@ class FetchEndpointNow(
                 // 304 responses arrive as empty results carrying the stored
                 // etag — still a success for health purposes.
                 is Outcome.Success -> {
+                    // Persist normalized items as evidence (Phase 3): the
+                    // ingestion is idempotent per (endpoint, external_id).
+                    if (outcome.result.items.isNotEmpty()) {
+                        ingestEvidence.execute(
+                            sourceId = endpoint.sourceId,
+                            endpointId = endpoint.id,
+                            items = outcome.result.items,
+                        )
+                    }
                     health.applySuccess(
                         endpoint.id,
                         clock.now(),
