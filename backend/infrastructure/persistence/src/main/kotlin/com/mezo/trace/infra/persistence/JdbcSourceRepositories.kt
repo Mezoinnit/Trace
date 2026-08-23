@@ -167,7 +167,33 @@ class JdbcSourceEndpointRepository(private val sql: SqlConnections) : SourceEndp
         createdAt = instant("created_at"),
         updatedAt = instant("updated_at"),
     )
+
+    override fun findDueEndpointIds(now: Instant, limit: Int): List<String> =
+        sql.current().prepareStatement(
+            """
+            SELECT se.id
+            FROM source_endpoints se
+            LEFT JOIN source_health sh ON sh.endpoint_id = se.id
+            WHERE se.status = 'ACTIVE'
+              AND (sh.next_poll_at IS NULL OR sh.next_poll_at <= ?)
+            ORDER BY COALESCE(sh.next_poll_at, se.created_at)
+            LIMIT ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setInstant(1, now)
+            ps.setInt(2, limit)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<String>()
+                while (rs.next()) out += rs.getObject("id", UUID::class.java).toString()
+                out
+            }
+        }
 }
+
+private fun pgIntervalToMinutes(value: Any): Int? = runCatching {
+    val iv = value as org.postgresql.util.PGInterval
+    iv.minutes + (iv.hours * 60) + (iv.days * 1440)
+}.getOrNull()
 
 class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealthRepository {
 
@@ -197,6 +223,9 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
                     lastItemAt = rs.getObject("last_item_at")?.let { rs.instant("last_item_at") },
                     lastChangeAt = rs.getObject("last_change_at")?.let { rs.instant("last_change_at") },
                     lastEtag = rs.getString("last_etag"),
+                    currentIntervalMinutes = rs.getObject("current_interval")
+                        ?.let { pgIntervalToMinutes(it) },
+                    nextPollAt = rs.getObject("next_poll_at")?.let { rs.instant("next_poll_at") },
                 )
             }
         }
@@ -246,6 +275,32 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
             ps.setString(1, failureState)
             ps.setInstant(2, at)
             ps.setObject(3, UUID.fromString(endpointId))
+            ps.executeUpdate()
+        }
+    }
+
+    override fun applyInterval(
+        endpointId: String,
+        interval: java.time.Duration,
+        consecutiveFailures: Int,
+        at: Instant,
+    ) {
+        sql.current().prepareStatement(
+            """
+            UPDATE source_health SET
+                next_poll_at = ?,
+                current_interval = ?::text::interval,
+                consecutive_failures = ?,
+                state = CASE WHEN ? > 0 AND state = 'HEALTHY' THEN 'DEGRADED' ELSE state END,
+                updated_at = now()
+            WHERE endpoint_id = ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setInstant(1, at.plus(interval))
+            ps.setString(2, "PT" + interval.toMinutes() + "M")
+            ps.setInt(3, consecutiveFailures)
+            ps.setInt(4, consecutiveFailures)
+            ps.setObject(5, UUID.fromString(endpointId))
             ps.executeUpdate()
         }
     }

@@ -128,7 +128,12 @@ Current status:
   include/exclude, time windows, significance/confidence thresholds — all in
   one pure deterministic `WatchEvaluator` with recorded rejection reasons;
   wired into matching with exactly-once alerts intact.
-- Phases 8+ — see the plan (scheduler + adaptive monitoring next).
+- **Phase 8 — completed:** scheduler + adaptive monitoring. Postgres job
+  queue (SKIP LOCKED claiming, exponential backoff, dead-letter, lease
+  expiry, idempotent enqueue); `IntervalCalculator` adapts polling from
+  outcomes with jitter (items→min, quiet→geometric growth to max, failures→
+  backoff, rate-limited→floor); worker/scheduler loops are live deployables.
+- Phases 9+ — see the plan (Android client next).
 
 ## Non-goals for V1
 

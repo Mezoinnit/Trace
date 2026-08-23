@@ -22,7 +22,7 @@ docker compose up -d          # PostgreSQL on :5432
 ./gradlew build               # compile + test
 ./gradlew :server:api:run     # API on :8080
 ./gradlew :server:worker:run  # worker
-./gradlew :server:scheduler:run  # scheduler
+./gradlew :server:scheduler:run  # adaptive poll scheduler (ADR-009)
 ```
 
 Health check:
@@ -55,6 +55,8 @@ variable. No secrets are committed.
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | |
 | `RATE_LIMIT_AUTH_PER_MIN` | `10` | per client IP on `/api/v1/auth/*` |
 | `RATE_LIMIT_API_PER_MIN` | `120` | per user on other `/api/v1/*` routes |
+| `WORKER_CONCURRENCY` | `4` | parallel job executions per worker |
+| `SCHEDULER_TICK_MS` | `5000` | scheduler scan cadence |
 | `LOGBACK_CONFIGURATION_FILE` | console logging | set to `logback-prod.xml` for JSON logs |
 
 ## 4. Migrations strategy

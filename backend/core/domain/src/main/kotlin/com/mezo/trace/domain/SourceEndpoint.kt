@@ -36,4 +36,8 @@ data class SourceHealth(
     val lastChangeAt: Instant?,
     /** Stored validator for conditional polling (ETag). */
     val lastEtag: String? = null,
+    /** Current adaptive polling interval in minutes (ADR-009). */
+    val currentIntervalMinutes: Int? = null,
+    /** Next scheduled poll (ADR-009). */
+    val nextPollAt: java.time.Instant? = null,
 )

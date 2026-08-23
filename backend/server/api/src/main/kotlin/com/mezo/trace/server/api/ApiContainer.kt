@@ -45,6 +45,7 @@ import com.mezo.trace.infra.persistence.JdbcAuditLogRepository
 import com.mezo.trace.infra.persistence.JdbcEntityRepository
 import com.mezo.trace.infra.persistence.JdbcEventRepository
 import com.mezo.trace.infra.persistence.JdbcEvidenceRepository
+import com.mezo.trace.infra.persistence.JdbcJobRepository
 import com.mezo.trace.infra.persistence.JdbcRefreshTokenRepository
 import com.mezo.trace.infra.persistence.JdbcSourceEndpointRepository
 import com.mezo.trace.infra.persistence.JdbcSourceHealthRepository
@@ -137,6 +138,26 @@ class ApiContainer(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,
         ingestEvidence, deriveEvents, matchWatches, txRunner, clock,
     )
+
+    // Scheduler (Phase 8, ADR-009): owns next_poll_at refinement.
+    val scheduler = com.mezo.trace.application.usecase.scheduler.ScheduleDueFetches(
+        sourceEndpoints,
+        sourceHealth,
+        JdbcJobRepository(sql),
+        txRunner,
+        clock,
+    )
+
+    /** Refines next_poll_at after a fetch outcome (worker callback). */
+    fun refineSchedule(endpointId: String, outcome: com.mezo.trace.application.usecase.scheduler.IntervalCalculator.Outcome) {
+        val previousMinutes = txRunner.run { sourceHealth.findByEndpointId(endpointId)?.currentIntervalMinutes }
+        scheduler.advanceSchedule(
+            endpointId,
+            outcome,
+            previousMinutes?.let { java.time.Duration.ofMinutes(it.toLong()) },
+            clock.now(),
+        )
+    }
 
     // Watches (Phase 4, audit + optimistic locking from audit remediation)
     val createWatch = CreateWatch(watchRepo, sourceEndpoints, requireMembership, auditLog, txRunner)
