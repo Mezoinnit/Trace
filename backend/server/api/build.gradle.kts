@@ -17,6 +17,8 @@ dependencies {
     implementation(project(":core:application"))
     implementation(project(":infrastructure:persistence"))
     implementation(project(":infrastructure:security"))
+    implementation(project(":infrastructure:fetch"))
+    implementation(project(":adapters"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

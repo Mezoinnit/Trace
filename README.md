@@ -94,7 +94,12 @@ Current status:
   `/api/v1` error envelope, request IDs, rate limiting, `/health/ready`,
   structured JSON logging option, 46 automated tests including the
   tenant-isolation matrix (embedded Postgres). See ADR-015.
-- Phases 2+ — see the plan (source abstraction + resolver next).
+- **Phase 2 — completed:** source system. SSRF-hardened fetcher (IP-validated
+  hops, redirect revalidation, size caps), adapter contract with GitHub/RSS/
+  Atom adapters plus a degraded web fallback, URL→endpoint resolver with
+  feed discovery, global source registry with per-endpoint health tracking,
+  `/api/v1/sources` routes. XXE-safe XML parsing. 77 tests total.
+- Phases 3+ — see the plan (evidence system next).
 
 ## Non-goals for V1
 

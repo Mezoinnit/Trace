@@ -192,5 +192,118 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             }
             call.respond(HttpStatusCode.OK, ListResponse(members))
         }
+
+        // ---- Sources (Phase 2: global shared intelligence) ----
+
+        post("/sources/resolve") {
+            call.requireUserId(c.tokenIssuer)
+            val request = call.receive<SourceResolveRequest>()
+            val proposal = c.resolveSource.execute(request.input)
+            call.respond(
+                HttpStatusCode.OK,
+                SourceProposalDto(
+                    inputUrl = proposal.inputUrl,
+                    provider = proposal.provider.name,
+                    sourceType = proposal.sourceType,
+                    canonicalIdentity = proposal.canonicalIdentity,
+                    endpointUri = proposal.endpointUri,
+                    displayUrl = proposal.displayUrl,
+                    endpointType = proposal.endpointType,
+                    adapterId = proposal.adapterId,
+                    capabilities = proposal.capabilities.map { it.name },
+                    trust = proposal.trust.name,
+                    displayName = proposal.displayName,
+                    notes = proposal.notes,
+                ),
+            )
+        }
+
+        post("/sources") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val request = call.receive<SourceCreateRequest>()
+            val registered = c.createSource.execute(
+                userId,
+                request.endpointUri.trim(),
+                request.adapterId.trim(),
+                request.displayName?.trim(),
+            )
+            call.respond(HttpStatusCode.Created, sourceDetailOf(c, registered.source.id))
+        }
+
+        get("/sources") {
+            call.requireUserId(c.tokenIssuer)
+            val items = c.listSources.execute().map { entry ->
+                SourceDetailDto(
+                    id = entry.source.id,
+                    provider = entry.source.provider.name,
+                    sourceType = entry.source.sourceType,
+                    canonicalIdentity = entry.source.canonicalIdentity,
+                    displayName = entry.source.displayName,
+                    trust = entry.source.trust.name,
+                    capabilities = entry.source.capabilities.map { it.name },
+                    status = entry.source.status.name,
+                    endpoints = entry.endpoints.map { endpoint ->
+                        SourceEndpointWithHealthDto(endpointDto(endpoint), null)
+                    },
+                )
+            }
+            call.respond(HttpStatusCode.OK, ListResponse(items))
+        }
+
+        get("/sources/{id}") {
+            call.requireUserId(c.tokenIssuer)
+            val detail = c.getSourceDetail.execute(call.parameters["id"].orEmpty())
+            call.respond(HttpStatusCode.OK, toSourceDetailDto(detail))
+        }
+
+        patch("/sources/{id}") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val request = call.receive<SourceStatusRequest>()
+            val newStatus = runCatching { com.mezo.trace.domain.SourceStatus.valueOf(request.status.uppercase()) }
+                .getOrElse { throw com.mezo.trace.domain.ValidationException("status", "must be ACTIVE or DISABLED") }
+            c.setSourceStatus.execute(userId, call.parameters["id"].orEmpty(), newStatus)
+            call.respond(HttpStatusCode.OK, toSourceDetailDto(c.getSourceDetail.execute(call.parameters["id"].orEmpty())))
+        }
     }
 }
+
+private fun endpointDto(endpoint: com.mezo.trace.domain.SourceEndpoint) = EndpointDto(
+    id = endpoint.id,
+    endpointUri = endpoint.endpointUri,
+    displayUrl = endpoint.displayUrl,
+    endpointType = endpoint.endpointType,
+    capabilities = endpoint.capabilities.map { it.name },
+    adapter = endpoint.adapter,
+    status = endpoint.status.name,
+)
+
+private fun healthDto(health: com.mezo.trace.domain.SourceHealth) = SourceHealthDto(
+    state = health.state.name,
+    lastSuccessAt = health.lastSuccessAt?.toString(),
+    lastFailureAt = health.lastFailureAt?.toString(),
+    failureCount = health.failureCount,
+    consecutiveFailures = health.consecutiveFailures,
+    averageLatencyMs = health.averageLatencyMs,
+    lastItemAt = health.lastItemAt?.toString(),
+)
+
+private fun toSourceDetailDto(detail: com.mezo.trace.application.usecase.sources.GetSourceDetail.Detail) =
+    SourceDetailDto(
+        id = detail.source.id,
+        provider = detail.source.provider.name,
+        sourceType = detail.source.sourceType,
+        canonicalIdentity = detail.source.canonicalIdentity,
+        displayName = detail.source.displayName,
+        trust = detail.source.trust.name,
+        capabilities = detail.source.capabilities.map { it.name },
+        status = detail.source.status.name,
+        endpoints = detail.endpoints.map { entry ->
+            SourceEndpointWithHealthDto(
+                endpoint = endpointDto(entry.endpoint),
+                health = entry.health?.let(::healthDto),
+            )
+        },
+    )
+
+private fun sourceDetailOf(c: ApiContainer, sourceId: String): SourceDetailDto =
+    toSourceDetailDto(c.getSourceDetail.execute(sourceId))
