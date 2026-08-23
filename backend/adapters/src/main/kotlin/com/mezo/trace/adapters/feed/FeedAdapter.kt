@@ -31,9 +31,18 @@ abstract class FeedAdapter(
             throw failure
         }
 
-        // Conditional poll hit: nothing changed since the stored ETag.
-        if (response.statusCode == 304) {
-            return FetchResult(items = emptyList(), etag = response.etag)
+        // Transport status mapping — uniform across adapters (contract tests).
+        when (response.statusCode) {
+            // Conditional poll hit: nothing changed since the stored ETag.
+            304 -> return FetchResult(items = emptyList(), etag = response.etag)
+            429 -> throw com.mezo.trace.application.port.FetchFailure(
+                com.mezo.trace.application.port.FetchFailure.Kind.RATE_LIMITED,
+                "feed host rate limited",
+            )
+            401, 403 -> throw com.mezo.trace.application.port.FetchFailure(
+                com.mezo.trace.application.port.FetchFailure.Kind.AUTH_REQUIRED,
+                "feed host requires auth",
+            )
         }
 
         val document = SafeXml.parse(response.body)

@@ -220,6 +220,8 @@ data class WatchDto(
     @SerialName("endpoint_ids") val endpointIds: List<String>,
     @SerialName("event_types") val eventTypes: List<String>,
     val status: String,
+    /** Optimistic-lock token; echo it in PATCH (plan §24). */
+    val version: Int,
     @SerialName("created_at") val createdAt: String,
 )
 
@@ -247,4 +249,18 @@ data class EntityDto(
 data class EntityDetailDto(
     val entity: EntityDto,
     @SerialName("recent_events") val recentEvents: List<EventDto>,
+)
+
+@Serializable
+data class EntityMergeRequest(
+    @SerialName("target_id") val targetId: String,
+)
+
+@Serializable
+data class WatchUpdateRequest(
+    @SerialName("expected_version") val expectedVersion: Int,
+    val name: String? = null,
+    val status: String? = null,
+    @SerialName("endpoint_ids") val endpointIds: List<String>? = null,
+    @SerialName("event_types") val eventTypes: List<String>? = null,
 )

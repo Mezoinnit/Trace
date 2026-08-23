@@ -1,6 +1,11 @@
 # Trace — Observability
 
-> Phase 0 contract. Logs, metrics, tracing, and audit must exist before any
+> Phase 0 contract.
+>
+> **Phase status:** structured logs, request IDs, audit records, health
+> endpoints and source-health tracking are implemented. Counters/metrics
+> (`fetch_*`, `evidence_created`, `alerts_created`, queue depth, …) land with
+> the Phase 8 scheduler/workers, which own the loops they measure. Logs, metrics, tracing, and audit must exist before any
 > pipeline stage is shipped (Definition of Done).
 
 ## 1. Logging

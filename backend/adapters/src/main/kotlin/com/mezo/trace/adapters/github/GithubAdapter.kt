@@ -56,6 +56,7 @@ class GithubAdapter(
 
         // Status handling here too: adapters may run over any transport.
         when (response.statusCode) {
+            304 -> return FetchResult(items = emptyList(), etag = response.etag)
             429 -> throw FetchFailure(FetchFailure.Kind.RATE_LIMITED, "github rate limit reached")
             401, 403 -> throw FetchFailure(FetchFailure.Kind.AUTH_REQUIRED, "github requires auth")
             404 -> throw EndpointRejected("repository or endpoint not found")
@@ -71,7 +72,11 @@ class GithubAdapter(
                 it,
             )
         }
-        if (root !is kotlinx.serialization.json.JsonArray) return FetchResult(emptyList())
+        // The releases endpoint MUST return a JSON array; anything else is a
+        // parser failure, never a silent empty page (Rule 3, Rule 5).
+        if (root !is kotlinx.serialization.json.JsonArray) {
+            throw EndpointRejected("github payload is not a release array")
+        }
 
         val items = root.asSequence()
             .filterIsInstance<kotlinx.serialization.json.JsonObject>()

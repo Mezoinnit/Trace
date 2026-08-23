@@ -59,10 +59,28 @@ class FetchEndpointNow(
                 ?: return fail(endpoint, "PARSER_FAILED", "unknown adapter ${endpoint.adapter}")
 
             val knownEtag = tx.run { health.findByEndpointId(endpoint.id)?.lastEtag }
-            val result = adapter.fetch(endpoint.endpointUri, cursor = null, knownEtag = knownEtag)
 
-            // Persist items, derive events, match watches (Phase 3 + Phase 4).
-            val summary = ingestEvidence.execute(endpoint.sourceId, endpoint.id, result.items)
+            // Bounded pagination backfill (plan Phase 4, Rule 6): follow the
+            // adapter cursor for at most MAX_BACKFILL_PAGES fetches per cycle.
+            // Newest-first APIs settle on a single page in steady state; the
+            // loop covers initial backfill deterministically.
+            var items = mutableListOf<com.mezo.trace.application.port.NormalizedItem>()
+            var lastEtag: String? = null
+            var cursor: String? = null
+            for (page in 0 until MAX_BACKFILL_PAGES) {
+                val result = adapter.fetch(
+                    endpoint.endpointUri,
+                    cursor = cursor,
+                    knownEtag = knownEtag.takeIf { page == 0 },
+                )
+                items.addAll(result.items)
+                lastEtag = result.etag ?: lastEtag
+                cursor = result.nextCursor
+                if (cursor == null || result.items.isEmpty()) break
+            }
+
+            // Persist items, derive events, match watches (Phase 3–4).
+            val summary = ingestEvidence.execute(endpoint.sourceId, endpoint.id, items)
             evidenceCreated = summary.created
             if (summary.touched.isNotEmpty()) {
                 val events = deriveEvents.execute(endpoint, summary.touched)
@@ -71,7 +89,13 @@ class FetchEndpointNow(
                     alertsCreated += matchWatches.execute(event).alertsCreated
                 }
             }
-            Outcome.Success(result, elapsedMs(startedAt), evidenceCreated, eventsDerived, alertsCreated)
+            Outcome.Success(
+                com.mezo.trace.application.port.FetchResult(items, etag = lastEtag),
+                elapsedMs(startedAt),
+                evidenceCreated,
+                eventsDerived,
+                alertsCreated,
+            )
         } catch (failure: FetchFailure) {
             Outcome.Failed(mapKind(failure.kind), failure.message ?: failure.kind.name)
         } catch (rejected: com.mezo.trace.application.port.EndpointRejected) {
@@ -138,6 +162,11 @@ class FetchEndpointNow(
         FetchFailure.Kind.TOO_LARGE -> "DEGRADED"
         FetchFailure.Kind.BLOCKED_PRIVATE_ADDRESS -> "BLOCKED"
         FetchFailure.Kind.UNSUPPORTED_SCHEME -> "BLOCKED"
+    }
+
+    companion object {
+        /** Page 1 + up to this many cursor follow-ups per cycle (Rule 6). */
+        const val MAX_BACKFILL_PAGES = 3
     }
 
     private fun elapsedMs(startedAtNanos: Long): Long =

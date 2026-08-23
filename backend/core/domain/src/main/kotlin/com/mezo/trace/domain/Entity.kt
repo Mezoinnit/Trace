@@ -11,6 +11,8 @@ data class Entity(
     val type: EntityType,
     val canonicalName: String,
     val description: String? = null,
+    /** Present when this entity was merged into another (recovery pointer). */
+    val mergedIntoEntityId: String? = null,
     val createdAt: Instant = java.time.Instant.EPOCH,
     val updatedAt: Instant = java.time.Instant.EPOCH,
 )

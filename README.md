@@ -120,6 +120,10 @@ Current status:
   never name-only; repository entities linked to their release events;
   `/api/v1/entities/{id}` with recent events. Distinct repositories never
   merge.
+- **Audit remediation (post-Phase 6):** entity merge with recovery pointers,
+  watch GET/PATCH + optimistic locking + lifecycle audit, account-deletion
+  tests, bounded pagination backfill, shared adapter contract suite
+  (114 tests).
 - Phases 7+ — see the plan (watch engine: full rule set next).
 
 ## Non-goals for V1

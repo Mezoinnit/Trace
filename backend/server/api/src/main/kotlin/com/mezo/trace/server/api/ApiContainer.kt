@@ -19,6 +19,7 @@ import com.mezo.trace.application.usecase.auth.RefreshSession
 import com.mezo.trace.application.usecase.auth.RegisterUser
 import com.mezo.trace.application.usecase.auth.SignIn
 import com.mezo.trace.application.usecase.auth.SignOut
+import com.mezo.trace.application.usecase.entities.MergeEntities
 import com.mezo.trace.application.usecase.intelligence.DeriveEventsFromEvidence
 import com.mezo.trace.application.usecase.intelligence.MarkEventContested
 import com.mezo.trace.application.usecase.intelligence.MatchWatchesForEvent
@@ -128,6 +129,7 @@ class ApiContainer(
     )
     val eventClusterer = com.mezo.trace.application.usecase.intelligence.EventClusterer(eventRepo, txRunner)
     val resolveEntity = com.mezo.trace.application.usecase.entities.ResolveEntity(entityRepo, txRunner)
+    val mergeEntities = MergeEntities(entityRepo, auditLog, txRunner)
     val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, txRunner)
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
     val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, txRunner)
@@ -136,10 +138,13 @@ class ApiContainer(
         ingestEvidence, deriveEvents, matchWatches, txRunner, clock,
     )
 
-    // Watches (Phase 4)
-    val createWatch = CreateWatch(watchRepo, sourceEndpoints, requireMembership, txRunner)
+    // Watches (Phase 4, audit + optimistic locking from audit remediation)
+    val createWatch = CreateWatch(watchRepo, sourceEndpoints, requireMembership, auditLog, txRunner)
     val listWatches = ListWatches(watchRepo, requireMembership, txRunner)
-    val deleteWatch = DeleteWatch(watchRepo, requireMembership, txRunner)
+    val deleteWatch = DeleteWatch(watchRepo, requireMembership, auditLog, txRunner)
+    val updateWatch = com.mezo.trace.application.usecase.watches.UpdateWatch(
+        watchRepo, sourceEndpoints, requireMembership, auditLog, txRunner,
+    )
 
     fun databaseReady(): Boolean = runCatching {
         dataSource.connection.use { connection ->

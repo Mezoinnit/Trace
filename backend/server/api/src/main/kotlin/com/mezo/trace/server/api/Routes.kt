@@ -312,9 +312,48 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             call.respond(HttpStatusCode.OK, ListResponse(items))
         }
 
+        get("/watches/{id}") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val watch = c.txRunner.run {
+                val w = c.watchRepo.findById(call.parameters["id"].orEmpty())
+                    ?: throw AppError.NotFound("watch")
+                c.requireMembership.execute(userId, com.mezo.trace.domain.WorkspaceId(w.workspaceId))
+                w
+            }
+            call.respond(HttpStatusCode.OK, watchDto(watch))
+        }
+
+        patch("/watches/{id}") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val body = call.receive<WatchUpdateRequest>()
+            val updated = c.updateWatch.execute(
+                userId,
+                call.parameters["id"].orEmpty(),
+                com.mezo.trace.application.usecase.watches.UpdateWatch.Patch(
+                    expectedVersion = body.expectedVersion,
+                    name = body.name,
+                    status = body.status,
+                    endpointIds = body.endpointIds?.toSet(),
+                    eventTypes = body.eventTypes?.toSet(),
+                ),
+            )
+            call.respond(HttpStatusCode.OK, watchDto(updated))
+        }
+
         delete("/watches/{id}") {
             val userId = call.requireUserId(c.tokenIssuer)
             c.deleteWatch.execute(userId, call.parameters["id"].orEmpty())
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        post("/entities/{id}/merge") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val body = call.receive<EntityMergeRequest>()
+            c.mergeEntities.execute(
+                userId.value,
+                call.parameters["id"].orEmpty(),
+                body.targetId.trim(),
+            )
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -383,6 +422,7 @@ private fun watchDto(watch: com.mezo.trace.domain.Watch) = WatchDto(
     endpointIds = watch.endpointIds.toList(),
     eventTypes = watch.eventTypes.toList(),
     status = watch.status.name,
+    version = watch.version,
     createdAt = watch.createdAt.toString(),
 )
 
