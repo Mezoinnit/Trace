@@ -132,7 +132,7 @@ class ApiContainer(
     val mergeEntities = MergeEntities(entityRepo, auditLog, txRunner)
     val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, txRunner)
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
-    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, txRunner)
+    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, txRunner)
     val fetchEndpointNow = FetchEndpointNow(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,
         ingestEvidence, deriveEvents, matchWatches, txRunner, clock,
@@ -143,7 +143,7 @@ class ApiContainer(
     val listWatches = ListWatches(watchRepo, requireMembership, txRunner)
     val deleteWatch = DeleteWatch(watchRepo, requireMembership, auditLog, txRunner)
     val updateWatch = com.mezo.trace.application.usecase.watches.UpdateWatch(
-        watchRepo, sourceEndpoints, requireMembership, auditLog, txRunner,
+        watchRepo, sourceEndpoints, requireMembership, auditLog, entityRepo, txRunner,
     )
 
     fun databaseReady(): Boolean = runCatching {

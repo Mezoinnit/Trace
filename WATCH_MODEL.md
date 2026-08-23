@@ -3,12 +3,18 @@
 > Phase 0 contract. A Watch is a persistent monitoring intent. It is
 > user-specific state; the definition is validated and bounded.
 >
-> **Implementation status:** Phase 4 ships the deterministic core — endpoint
-> constraints (`endpoint_ids`, max 20) plus event-type filters; empty types =
-> all types. Matching runs on every new event and creates exactly-one alerts
-> via the `(watch_id, event_id)` unique constraint (ADR-012). Keyword,
-> semantic, time-window, and threshold filters arrive in Phase 7 behind the
-> same definition shape. Workspace membership is verified server-side on every
+> **Implementation status:** Phase 7 completes the deterministic rule set.
+> `WatchEvaluator` is a pure function over: endpoint containment, event type,
+> entity constraints (via the Phase 6 graph), keyword include/exclude on
+> title+summary, a recency window (`max_age_hours`), and significance/
+> confidence band thresholds. Rejection reasons are recorded per match for
+> explainability. Bounds: ≤20 endpoints, ≤10 entities, ≤20 terms per keyword
+> list (≤64 chars each), semantic ≤500 chars, age 1–8760 h.
+>
+> The `semantic` field is stored and editable now but deliberately NOT part
+> of deterministic matching; it activates with the AI layer (Phase 10).
+> Alerts remain exactly-once via the `(watch_id, event_id)` unique constraint
+> (ADR-012), independent of evaluator results. Workspace membership is verified server-side on every
 > operation (client-supplied workspace_id is a claim, not a trust anchor).
 
 ## 1. Definition

@@ -157,12 +157,26 @@ Query params: `cursor` (opaque), `limit` (1–100, default 50). Response:
   "workspace_id": "…",
   "name": "Widget releases",
   "endpoint_ids": ["…"],
-  "event_types": ["SOFTWARE_RELEASE"]
+  "event_types": ["SOFTWARE_RELEASE"],
+  "entity_ids": [],
+  "keywords_include": ["security"],
+  "keywords_exclude": ["beta"],
+  "semantic": null,
+  "max_age_hours": 720,
+  "min_significance": "MEDIUM",
+  "min_confidence": null
 }
 ```
 
 Rules: at least one endpoint (max 20), non-blank name; unknown endpoints or
 foreign workspaces → `400`/`404`. Empty `event_types` matches all types.
+Bounds (Rule 6): ≤10 entities, ≤20 terms per keyword list (≤64 chars),
+semantic ≤500 chars, `max_age_hours` 1–8760. `semantic` is stored but only
+evaluated from Phase 10.
+
+`PATCH /api/v1/watches/{id}` requires `expected_version` (optimistic locking;
+stale version → `409 CONFLICT`) and accepts any subset of the create fields
+plus `status` (`ACTIVE`/`PAUSED`).
 
 ### Alerts
 
