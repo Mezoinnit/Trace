@@ -2,6 +2,14 @@
 
 > Phase 0 contract. A Watch is a persistent monitoring intent. It is
 > user-specific state; the definition is validated and bounded.
+>
+> **Implementation status:** Phase 4 ships the deterministic core — endpoint
+> constraints (`endpoint_ids`, max 20) plus event-type filters; empty types =
+> all types. Matching runs on every new event and creates exactly-one alerts
+> via the `(watch_id, event_id)` unique constraint (ADR-012). Keyword,
+> semantic, time-window, and threshold filters arrive in Phase 7 behind the
+> same definition shape. Workspace membership is verified server-side on every
+> operation (client-supplied workspace_id is a claim, not a trust anchor).
 
 ## 1. Definition
 

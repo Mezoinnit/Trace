@@ -104,7 +104,14 @@ Current status:
   content changes append `evidence_versions` (history preserved, ADR-006);
   full provenance (source, endpoint, external id, canonical URL, timestamps)
   on every record; fetch pipeline persists normalized items automatically.
-- Phases 4+ — see the plan (GitHub end-to-end vertical slice next).
+- **Phase 4 — completed:** GitHub end-to-end vertical slice. Deterministic
+  SOFTWARE_RELEASE events from release evidence (replay-safe via unique
+  `external_ref`), watches bound to exact endpoints, exactly-one alerts per
+  `(watch_id, event_id)` (ADR-012), cursor-paginated `/api/v1/events` feed,
+  watch CRUD with server-side membership checks. Proven by integration tests:
+  new releases alert exactly once per watching workspace; replays never
+  duplicate; one ingestion fans out to multiple watchers.
+- Phases 5+ — see the plan (event engine: clustering, confidence, contradictions).
 
 ## Non-goals for V1
 

@@ -182,3 +182,53 @@ data class SourceEndpointWithHealthDto(
     val endpoint: EndpointDto,
     val health: SourceHealthDto?,
 )
+
+// ---- Events / Watches / Alerts (Phase 4) ----
+
+@Serializable
+data class EventDto(
+    val id: String,
+    val type: String,
+    val title: String,
+    val summary: String?,
+    @SerialName("occurred_at") val occurredAt: String?,
+    @SerialName("discovered_at") val discoveredAt: String,
+    val confidence: String,
+    val significance: String,
+    val status: String,
+)
+
+@Serializable
+data class EventFeedResponse(
+    val items: List<EventDto>,
+    @SerialName("next_cursor") val nextCursor: String? = null,
+)
+
+@Serializable
+data class WatchCreateRequest(
+    @SerialName("workspace_id") val workspaceId: String,
+    val name: String,
+    @SerialName("endpoint_ids") val endpointIds: List<String>,
+    @SerialName("event_types") val eventTypes: List<String> = emptyList(),
+)
+
+@Serializable
+data class WatchDto(
+    val id: String,
+    @SerialName("workspace_id") val workspaceId: String,
+    val name: String,
+    @SerialName("endpoint_ids") val endpointIds: List<String>,
+    @SerialName("event_types") val eventTypes: List<String>,
+    val status: String,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class AlertDto(
+    val id: String,
+    @SerialName("watch_id") val watchId: String,
+    @SerialName("event_id") val eventId: String,
+    val significance: String,
+    val status: String,
+    @SerialName("created_at") val createdAt: String,
+)
