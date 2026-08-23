@@ -318,6 +318,27 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             call.respond(HttpStatusCode.NoContent)
         }
 
+        get("/entities/{id}") {
+            call.requireUserId(c.tokenIssuer)
+            val detail = c.txRunner.run {
+                val entity = c.entityRepo.findById(call.parameters["id"].orEmpty())
+                    ?: throw AppError.NotFound("entity")
+                entity to c.entityRepo.eventsForEntity(entity.id, limit = 50)
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                EntityDetailDto(
+                    entity = EntityDto(
+                        id = detail.first.id,
+                        type = detail.first.type.name,
+                        canonicalName = detail.first.canonicalName,
+                        description = detail.first.description,
+                    ),
+                    recentEvents = detail.second.map(::eventDto),
+                ),
+            )
+        }
+
         // ---- Alerts (per-workspace, Phase 4) ----
 
         get("/alerts") {

@@ -41,6 +41,7 @@ import com.mezo.trace.application.usecase.workspace.RenameWorkspace
 import com.mezo.trace.infra.fetch.SafeHttpFetcher
 import com.mezo.trace.infra.persistence.JdbcAlertRepository
 import com.mezo.trace.infra.persistence.JdbcAuditLogRepository
+import com.mezo.trace.infra.persistence.JdbcEntityRepository
 import com.mezo.trace.infra.persistence.JdbcEventRepository
 import com.mezo.trace.infra.persistence.JdbcEvidenceRepository
 import com.mezo.trace.infra.persistence.JdbcRefreshTokenRepository
@@ -119,13 +120,15 @@ class ApiContainer(
     val eventRepo = JdbcEventRepository(sql)
     val watchRepo = JdbcWatchRepository(sql)
     val alertRepo = JdbcAlertRepository(sql)
+    val entityRepo = JdbcEntityRepository(sql)
 
     val ingestEvidence = com.mezo.trace.application.usecase.evidence.IngestEvidence(
         JdbcEvidenceRepository(sql),
         txRunner,
     )
     val eventClusterer = com.mezo.trace.application.usecase.intelligence.EventClusterer(eventRepo, txRunner)
-    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, txRunner)
+    val resolveEntity = com.mezo.trace.application.usecase.entities.ResolveEntity(entityRepo, txRunner)
+    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, txRunner)
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
     val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, txRunner)
     val fetchEndpointNow = FetchEndpointNow(
