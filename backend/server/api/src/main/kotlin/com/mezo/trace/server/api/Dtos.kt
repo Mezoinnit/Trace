@@ -232,3 +232,19 @@ data class AlertDto(
     val status: String,
     @SerialName("created_at") val createdAt: String,
 )
+
+// ---- Entities (Phase 6) ----
+
+@Serializable
+data class EntityDto(
+    val id: String,
+    val type: String,
+    @SerialName("canonical_name") val canonicalName: String,
+    val description: String?,
+)
+
+@Serializable
+data class EntityDetailDto(
+    val entity: EntityDto,
+    @SerialName("recent_events") val recentEvents: List<EventDto>,
+)

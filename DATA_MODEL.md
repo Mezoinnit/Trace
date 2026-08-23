@@ -245,6 +245,8 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 
 ### entities
 
+**Implemented in `V7__entities.sql` (Phase 6).**
+
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
@@ -257,6 +259,8 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 
 ### entity_aliases
 
+**Implemented in `V7__entities.sql` (Phase 6).**
+
 | column | type | notes |
 |--------|------|-------|
 | entity_id | uuid NOT NULL REFERENCES entities(id) | |
@@ -264,6 +268,8 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 | PRIMARY KEY (entity_id, alias) | | |
 
 ### entity_identifiers
+
+**Implemented in `V7__entities.sql` (Phase 6).**
 
 | column | type | notes |
 |--------|------|-------|
@@ -273,6 +279,8 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 | PRIMARY KEY (id_type, id_value) | | identity by structured id, not name |
 
 ### entity_relationships
+
+**Implemented in `V7__entities.sql` (Phase 6).**
 
 | column | type | notes |
 |--------|------|-------|
@@ -284,6 +292,8 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 | UNIQUE (source_entity_id, target_entity_id, relation) | | |
 
 ### event_entities
+
+**Implemented in `V7__entities.sql` (Phase 6).**
 
 | column | type | notes |
 |--------|------|-------|

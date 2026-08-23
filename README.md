@@ -115,7 +115,12 @@ Current status:
   + title similarity + temporal window, source-scoped), inspectable confidence
   scores with recorded reasoning inputs, corroboration across distinct
   endpoints, and CONTESTED state preserving contradictory evidence.
-- Phases 6+ — see the plan (entity system next).
+- **Phase 6 — completed:** entity system. Deterministic resolution by
+  structured identifiers (`GITHUB_REPO:owner/repo`) with alias backfill —
+  never name-only; repository entities linked to their release events;
+  `/api/v1/entities/{id}` with recent events. Distinct repositories never
+  merge.
+- Phases 7+ — see the plan (watch engine: full rule set next).
 
 ## Non-goals for V1
 

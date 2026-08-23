@@ -26,6 +26,8 @@ class DeriveEventsFromEvidence(
     private val events: EventRepository,
     private val sources: SourceRepository,
     private val clusterer: EventClusterer,
+    private val resolveEntity: com.mezo.trace.application.usecase.entities.ResolveEntity,
+    private val entities: com.mezo.trace.application.port.EntityRepository,
     private val tx: TxRunner,
 ) {
 
@@ -50,6 +52,7 @@ class DeriveEventsFromEvidence(
 
         // 1. Exact provider identity → the same real-world release.
         events.findByExternalRef(provider, item.externalId)?.let { existing ->
+            linkRepositoryEntity(existing.id, item)
             recomputeConfidence(existing.id, endpoint)
             return existing
         }
@@ -63,6 +66,7 @@ class DeriveEventsFromEvidence(
         )
         decision.attachTo?.let { representative ->
             events.linkEvidence(representative.id, touch.evidenceId)
+            linkRepositoryEntity(representative.id, item)
             recomputeConfidence(representative.id, endpoint)
             return representative
         }
@@ -97,6 +101,7 @@ class DeriveEventsFromEvidence(
         }
 
         events.linkEvidence(created.id, touch.evidenceId)
+        linkRepositoryEntity(created.id, item)
 
         // Seed confidence for the new event.
         val scored = ConfidenceCalculator.calculate(
@@ -115,6 +120,28 @@ class DeriveEventsFromEvidence(
             confidenceReasoning = scored.reasoning,
             confidence = scored.band,
         )
+    }
+
+    /**
+     * Phase 6: deterministic repository-entity resolution and event linkage.
+     * GitHub release metadata carries owner/repo — a structured identifier,
+     * so no AI extraction is needed.
+     */
+    private fun linkRepositoryEntity(eventId: String, item: com.mezo.trace.application.port.NormalizedItem) {
+        val owner = item.metadata["owner"] ?: return
+        val repo = item.metadata["repo"] ?: return
+        val entity = resolveEntity.execute(
+            com.mezo.trace.application.usecase.entities.ResolveEntity.Request(
+                type = com.mezo.trace.domain.EntityType.REPOSITORY,
+                canonicalName = "$owner/$repo",
+                identifiers = listOf(
+                    com.mezo.trace.domain.EntityIdentifier("GITHUB_REPO", "$owner/$repo"),
+                ),
+                aliases = listOf("$owner/$repo"),
+                description = "GitHub repository",
+            ),
+        )
+        entities.linkEvent(eventId, entity.id)
     }
 
     /** Recomputes inspectable confidence after evidence was attached. */

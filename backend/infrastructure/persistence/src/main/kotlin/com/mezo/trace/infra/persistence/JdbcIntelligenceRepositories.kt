@@ -229,23 +229,7 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
             ref.forEach { (k, v) -> put(k, kotlinx.serialization.json.JsonPrimitive(v)) }
         }.toString()
 
-    private fun ResultSet.toEvent(): Event = Event(
-        id = getObject("id", UUID::class.java).toString(),
-        type = getString("type"),
-        title = getString("title"),
-        summary = getObject("summary") as String?,
-        occurredAt = getObject("occurred_at")?.let { instant("occurred_at") },
-        discoveredAt = instant("discovered_at"),
-        confidence = getString("confidence"),
-        significance = getString("significance"),
-        status = EventStatus.valueOf(getString("status")),
-        externalRef = decodeRef(getString("external_ref")),
-        confidenceScore = getBigDecimal("confidence_score")?.toDouble(),
-        confidenceReasoning = decodeDoubleMap(getString("confidence_reasoning")),
-        mergedIntoEventId = getObject("merged_into_event_id")?.let { getObject("merged_into_event_id", UUID::class.java).toString() },
-        createdAt = instant("created_at"),
-        updatedAt = instant("updated_at"),
-    )
+    private fun ResultSet.toEvent(): Event = EVENT_MAPPER.fromRow(this)
 
     private fun decodeRef(json: String?): Map<String, String> {
         if (json.isNullOrBlank()) return emptyMap()
@@ -418,6 +402,8 @@ internal fun decodeDoubleMap(json: String?): Map<String, Double> {
         }.toMap()
     }.getOrDefault(emptyMap())
 }
+
+private val EVENT_MAPPER = com.mezo.trace.infra.persistence.EventRowMapper()
 
 internal fun listJson(values: List<String>): String =
     kotlinx.serialization.json.Json.encodeToString(
