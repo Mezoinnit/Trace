@@ -264,8 +264,106 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             c.setSourceStatus.execute(userId, call.parameters["id"].orEmpty(), newStatus)
             call.respond(HttpStatusCode.OK, toSourceDetailDto(c.getSourceDetail.execute(call.parameters["id"].orEmpty())))
         }
+
+        // ---- Events (global intelligence feed, Phase 4) ----
+
+        get("/events") {
+            call.requireUserId(c.tokenIssuer)
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 100)
+            val cursor = call.request.queryParameters["cursor"]
+            val page = c.txRunner.run { c.eventRepo.feedPage(cursor, limit) }
+            call.respond(
+                HttpStatusCode.OK,
+                EventFeedResponse(
+                    items = page.events.map(::eventDto),
+                    nextCursor = page.nextCursor,
+                ),
+            )
+        }
+
+        get("/events/{id}") {
+            call.requireUserId(c.tokenIssuer)
+            val event = c.txRunner.run { c.eventRepo.findById(call.parameters["id"].orEmpty()) }
+                ?: throw AppError.NotFound("event")
+            call.respond(HttpStatusCode.OK, eventDto(event))
+        }
+
+        // ---- Watches (tenant-owned monitoring rules, Phase 4) ----
+
+        post("/watches") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val request = call.receive<WatchCreateRequest>()
+            val watch = c.createWatch.execute(
+                userId,
+                request.workspaceId.trim(),
+                request.name,
+                request.endpointIds.toSet(),
+                request.eventTypes.toSet(),
+            )
+            call.respond(HttpStatusCode.Created, watchDto(watch))
+        }
+
+        get("/watches") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val workspaceId = call.request.queryParameters["workspace_id"]?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: throw com.mezo.trace.domain.ValidationException("workspace_id", "required")
+            val items = c.listWatches.execute(userId, workspaceId).map(::watchDto)
+            call.respond(HttpStatusCode.OK, ListResponse(items))
+        }
+
+        delete("/watches/{id}") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            c.deleteWatch.execute(userId, call.parameters["id"].orEmpty())
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        // ---- Alerts (per-workspace, Phase 4) ----
+
+        get("/alerts") {
+            val userId = call.requireUserId(c.tokenIssuer)
+            val workspaceId = call.request.queryParameters["workspace_id"]?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: throw com.mezo.trace.domain.ValidationException("workspace_id", "required")
+            val alerts = c.txRunner.run {
+                c.requireMembership.execute(userId, com.mezo.trace.domain.WorkspaceId(workspaceId))
+                c.alertRepo.listForWorkspace(workspaceId, limit = 100)
+            }.map { alert ->
+                AlertDto(
+                    id = alert.id,
+                    watchId = alert.watchId,
+                    eventId = alert.eventId,
+                    significance = alert.significance,
+                    status = alert.status.name,
+                    createdAt = alert.createdAt.toString(),
+                )
+            }
+            call.respond(HttpStatusCode.OK, ListResponse(alerts))
+        }
     }
 }
+
+private fun eventDto(event: com.mezo.trace.domain.Event) = EventDto(
+    id = event.id,
+    type = event.type,
+    title = event.title,
+    summary = event.summary,
+    occurredAt = event.occurredAt?.toString(),
+    discoveredAt = event.discoveredAt.toString(),
+    confidence = event.confidence,
+    significance = event.significance,
+    status = event.status.name,
+)
+
+private fun watchDto(watch: com.mezo.trace.domain.Watch) = WatchDto(
+    id = watch.id,
+    workspaceId = watch.workspaceId,
+    name = watch.name,
+    endpointIds = watch.endpointIds.toList(),
+    eventTypes = watch.eventTypes.toList(),
+    status = watch.status.name,
+    createdAt = watch.createdAt.toString(),
+)
 
 private fun endpointDto(endpoint: com.mezo.trace.domain.SourceEndpoint) = EndpointDto(
     id = endpoint.id,

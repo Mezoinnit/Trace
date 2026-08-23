@@ -2,6 +2,14 @@
 
 > Phase 0 contract. The event is the central product object: **one event, many
 > pieces of evidence** (ADR-004).
+>
+> **Implementation status:** Phase 4 ships the deterministic slice —
+> SOFTWARE_RELEASE events derived from GitHub release evidence, keyed by a
+> unique `external_ref` (`provider` + `external_id`) so pipeline replays never
+> duplicate. Confidence defaults HIGH for first-party structured data;
+> significance LOW for prerelease/draft, MEDIUM otherwise. Clustering,
+> multi-signal dedup, contradiction detection, and inspectable confidence
+> reasoning arrive in Phases 5–6 behind the same `events` schema.
 
 ## 1. Semantics
 

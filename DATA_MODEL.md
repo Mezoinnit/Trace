@@ -209,6 +209,9 @@ changes; never overwritten (ADR-006).
 ### events
 
 The core product object. Deduplicated, clustered.
+**Implemented in `V5__events_watches_alerts.sql` (Phase 4).** Pipeline-derived
+events carry a unique `external_ref` (provider + external_id) for replay-safe
+upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 
 | column | type | notes |
 |--------|------|-------|
@@ -229,6 +232,8 @@ The core product object. Deduplicated, clustered.
 | INDEX (occurred_at DESC, id DESC) | | cursor pagination key |
 
 ### event_evidence
+
+**Implemented in `V5__events_watches_alerts.sql` (Phase 4).**
 
 | column | type | notes |
 |--------|------|-------|
@@ -289,7 +294,7 @@ The core product object. Deduplicated, clustered.
 
 ### watches
 
-Persistent monitoring intent. User-specific.
+Persistent monitoring intent. User-specific. **Implemented in `V5__events_watches_alerts.sql` (Phase 4)** with `endpoint_ids` + `event_types` JSONB arrays (Phase 7 adds keyword/semantic filters to the definition).
 
 | column | type | notes |
 |--------|------|-------|
@@ -308,6 +313,8 @@ Watch `definition` shape is specified in WATCH_MODEL.md. Complexity is bounded
 (Rule 6).
 
 ### alerts
+
+**Implemented in `V5__events_watches_alerts.sql` (Phase 4).**
 
 | column | type | notes |
 |--------|------|-------|

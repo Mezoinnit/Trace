@@ -116,6 +116,65 @@ Tenant-owned resource CRUD proving the Phase 1 exit criteria.
 Non-members receive `404` on every operation (never `403`) to prevent tenant
 enumeration (ADR-010).
 
+### Events
+
+**Implemented in Phase 4.** Global intelligence feed; authentication required.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/events` | cursor-paginated feed, newest first |
+| GET | `/api/v1/events/{id}` | event detail |
+
+Query params: `cursor` (opaque), `limit` (1–100, default 50). Response:
+
+```json
+{
+  "items": [
+    {
+      "id": "…", "type": "SOFTWARE_RELEASE",
+      "title": "v3.1.0", "summary": "…",
+      "occurred_at": "2026-08-10T10:00:00Z",
+      "discovered_at": "…",
+      "confidence": "HIGH", "significance": "MEDIUM", "status": "CONFIRMED"
+    }
+  ],
+  "next_cursor": "…"
+}
+```
+
+### Watches
+
+**Implemented in Phase 4** (deterministic core: endpoint + event-type rules).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/api/v1/watches` | create; workspace membership verified server-side |
+| GET | `/api/v1/watches?workspace_id=…` | list for a workspace |
+| DELETE | `/api/v1/watches/{id}` | soft delete (stops matching) |
+
+```json
+{
+  "workspace_id": "…",
+  "name": "Widget releases",
+  "endpoint_ids": ["…"],
+  "event_types": ["SOFTWARE_RELEASE"]
+}
+```
+
+Rules: at least one endpoint (max 20), non-blank name; unknown endpoints or
+foreign workspaces → `400`/`404`. Empty `event_types` matches all types.
+
+### Alerts
+
+**Implemented in Phase 4.** Exactly-once per `(watch_id, event_id)` (ADR-012).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/alerts?workspace_id=…` | alerts for a verified workspace member |
+
+Push notification dispatch (FCM) arrives with the Android phase; alerts are
+queryable and visible in-app from Phase 9 onward.
+
 ### Device registration (planned — notifications phase)
 
 ### Watches

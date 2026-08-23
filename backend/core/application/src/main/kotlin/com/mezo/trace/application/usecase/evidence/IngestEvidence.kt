@@ -25,10 +25,18 @@ class IngestEvidence(
     private val tx: TxRunner,
 ) {
 
+    data class EvidenceTouch(
+        val evidenceId: String,
+        val isNew: Boolean,
+        val item: NormalizedItem,
+    )
+
     data class IngestSummary(
         val created: Int,
         val unchanged: Int,
         val versioned: Int,
+        /** Created or versioned records — inputs for downstream derivation. */
+        val touched: List<EvidenceTouch>,
     )
 
     fun execute(
@@ -36,11 +44,12 @@ class IngestEvidence(
         endpointId: String,
         items: List<NormalizedItem>,
     ): IngestSummary {
-        if (items.isEmpty()) return IngestSummary(0, 0, 0)
+        if (items.isEmpty()) return IngestSummary(0, 0, 0, emptyList())
         return tx.run {
             var created = 0
             var unchanged = 0
             var versioned = 0
+            val touched = mutableListOf<EvidenceTouch>()
 
             for (item in items) {
                 val contentHash = sha256(item.contentPreview.orEmpty())
@@ -48,9 +57,10 @@ class IngestEvidence(
 
                 when {
                     existing == null -> {
+                        val id = UUID.randomUUID().toString()
                         evidenceRepository.insert(
                             Evidence(
-                                id = UUID.randomUUID().toString(),
+                                id = id,
                                 sourceId = sourceId,
                                 endpointId = endpointId,
                                 externalId = item.externalId,
@@ -68,6 +78,7 @@ class IngestEvidence(
                             ),
                         )
                         created++
+                        touched += EvidenceTouch(id, true, item)
                     }
 
                     existing.contentHash == contentHash ||
@@ -91,10 +102,11 @@ class IngestEvidence(
                             ),
                         )
                         versioned++
+                        touched += EvidenceTouch(existing.id, false, item)
                     }
                 }
             }
-            IngestSummary(created, unchanged, versioned)
+            IngestSummary(created, unchanged, versioned, touched)
         }
     }
 
