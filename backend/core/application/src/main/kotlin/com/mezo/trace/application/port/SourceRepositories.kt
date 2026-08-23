@@ -21,6 +21,9 @@ interface SourceEndpointRepository {
     fun findByUri(endpointUri: String): SourceEndpoint?
     fun listBySourceId(sourceId: String): List<SourceEndpoint>
     fun setStatus(id: String, status: String, now: Instant)
+
+    /** ACTIVE endpoints whose next_poll_at is due (scheduler scan, ADR-009). */
+    fun findDueEndpointIds(now: Instant, limit: Int): List<String>
 }
 
 /**
@@ -42,4 +45,7 @@ interface SourceHealthRepository {
     fun applyFailure(endpointId: String, at: Instant, failureState: String)
 
     fun storeEtag(endpointId: String, etag: String?)
+
+    /** Stores the computed polling interval and failure streak (ADR-009). */
+    fun applyInterval(endpointId: String, interval: java.time.Duration, consecutiveFailures: Int, at: Instant)
 }

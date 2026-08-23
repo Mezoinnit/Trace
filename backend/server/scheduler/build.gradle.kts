@@ -13,8 +13,13 @@ application {
 }
 
 dependencies {
+    implementation(project(":core:domain"))
     implementation(project(":core:application"))
     implementation(project(":infrastructure:persistence"))
+    implementation(project(":infrastructure:security"))
+    implementation(project(":infrastructure:fetch"))
+    implementation(project(":adapters"))
+    implementation(project(":server:api"))
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlin.logging)
