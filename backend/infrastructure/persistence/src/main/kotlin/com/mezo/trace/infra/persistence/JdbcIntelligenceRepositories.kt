@@ -32,8 +32,9 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
         sql.current().prepareStatement(
             """
             INSERT INTO events (id, type, title, summary, occurred_at, discovered_at,
-                                confidence, significance, status, external_ref, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?)
+                                confidence, significance, status, external_ref, created_at, updated_at,
+                                confidence_score, confidence_reasoning, merged_into_event_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?::jsonb, ?)
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).use { ps ->
@@ -50,6 +51,10 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
             ps.setString(10, refJson(event.externalRef))
             ps.setInstant(11, event.createdAt)
             ps.setInstant(12, event.updatedAt)
+            val score = event.confidenceScore
+            if (score != null) ps.setDouble(13, score) else ps.setNull(13, java.sql.Types.NUMERIC)
+            ps.setString(14, doubleMapJson(event.confidenceReasoning))
+            if (event.mergedIntoEventId != null) ps.setObject(15, UUID.fromString(event.mergedIntoEventId)) else ps.setNull(15, java.sql.Types.NULL)
             ps.executeUpdate() > 0
         }
 
@@ -64,6 +69,66 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
             ps.setObject(1, UUID.fromString(eventId))
             ps.setObject(2, UUID.fromString(evidenceId))
             ps.setString(3, role)
+            ps.executeUpdate()
+        }
+    }
+
+    override fun updateStatus(eventId: String, status: com.mezo.trace.domain.EventStatus) {
+        val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return
+        sql.current().prepareStatement(
+            "UPDATE events SET status = ?, updated_at = now() WHERE id = ?",
+        ).use { ps ->
+            ps.setString(1, status.name)
+            ps.setObject(2, uuid)
+            ps.executeUpdate()
+        }
+    }
+
+    override fun markEvidenceRole(evidenceId: String, eventId: String, role: String) {
+        sql.current().prepareStatement(
+            """
+            INSERT INTO event_evidence (event_id, evidence_id, role)
+            VALUES (?, ?, ?)
+            ON CONFLICT (event_id, evidence_id) DO UPDATE SET role = EXCLUDED.role
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setObject(1, UUID.fromString(eventId))
+            ps.setObject(2, UUID.fromString(evidenceId))
+            ps.setString(3, role)
+            ps.executeUpdate()
+        }
+    }
+
+    override fun countDistinctSupportingEndpoints(eventId: String): Int {
+        val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return 0
+        return sql.current().prepareStatement(
+            """
+            SELECT count(DISTINCT e.endpoint_id)
+            FROM event_evidence ee JOIN evidence e ON e.id = ee.evidence_id
+            WHERE ee.event_id = ? AND ee.role = 'SUPPORTING'
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs ->
+                rs.next(); rs.getInt(1)
+            }
+        }
+    }
+
+    override fun updateConfidence(
+        eventId: String,
+        band: String,
+        score: Double,
+        reasoning: Map<String, Double>,
+    ) {
+        val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return
+        sql.current().prepareStatement(
+            "UPDATE events SET confidence = ?, confidence_score = ?, confidence_reasoning = ?::jsonb, updated_at = now() WHERE id = ?",
+        ).use { ps ->
+            ps.setString(1, band)
+            ps.setDouble(2, score)
+            ps.setString(3, doubleMapJson(reasoning))
+            ps.setObject(4, uuid)
             ps.executeUpdate()
         }
     }
@@ -121,6 +186,29 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
             }
         }
 
+    override fun latestDiscoveredBySource(sourceId: String, limit: Int): List<Event> {
+        val uuid = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull() ?: return emptyList()
+        return sql.current().prepareStatement(
+            """
+            SELECT DISTINCT e.*
+            FROM events e
+            JOIN event_evidence ee ON ee.event_id = e.id
+            JOIN evidence ev ON ev.id = ee.evidence_id
+            WHERE ev.source_id = ? AND e.merged_into_event_id IS NULL
+            ORDER BY e.discovered_at DESC, e.id DESC
+            LIMIT ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.setInt(2, limit)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<Event>()
+                while (rs.next()) out += rs.toEvent()
+                out
+            }
+        }
+    }
+
     private fun encodeCursor(event: Event): String =
         Base64.getEncoder().encodeToString(
             "${event.occurredAt ?: event.discoveredAt}|${event.id}".toByteArray(),
@@ -152,6 +240,9 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
         significance = getString("significance"),
         status = EventStatus.valueOf(getString("status")),
         externalRef = decodeRef(getString("external_ref")),
+        confidenceScore = getBigDecimal("confidence_score")?.toDouble(),
+        confidenceReasoning = decodeDoubleMap(getString("confidence_reasoning")),
+        mergedIntoEventId = getObject("merged_into_event_id")?.let { getObject("merged_into_event_id", UUID::class.java).toString() },
         createdAt = instant("created_at"),
         updatedAt = instant("updated_at"),
     )
@@ -311,6 +402,21 @@ class JdbcAlertRepository(private val sql: SqlConnections) : AlertRepository {
         kotlinx.serialization.json.buildJsonObject {
             map.forEach { (k, v) -> put(k, kotlinx.serialization.json.JsonPrimitive(v)) }
         }.toString()
+}
+
+internal fun doubleMapJson(map: Map<String, Double>): String =
+        kotlinx.serialization.json.buildJsonObject {
+            map.forEach { (k, v) -> put(k, kotlinx.serialization.json.JsonPrimitive(v)) }
+        }.toString()
+
+internal fun decodeDoubleMap(json: String?): Map<String, Double> {
+    if (json.isNullOrBlank()) return emptyMap()
+    return runCatching {
+        val obj = kotlinx.serialization.json.Json.parseToJsonElement(json) as kotlinx.serialization.json.JsonObject
+        obj.entries.mapNotNull { (k, v) ->
+            ((v as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull())?.let { k to it }
+        }.toMap()
+    }.getOrDefault(emptyMap())
 }
 
 internal fun listJson(values: List<String>): String =

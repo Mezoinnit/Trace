@@ -20,6 +20,7 @@ import com.mezo.trace.application.usecase.auth.RegisterUser
 import com.mezo.trace.application.usecase.auth.SignIn
 import com.mezo.trace.application.usecase.auth.SignOut
 import com.mezo.trace.application.usecase.intelligence.DeriveEventsFromEvidence
+import com.mezo.trace.application.usecase.intelligence.MarkEventContested
 import com.mezo.trace.application.usecase.intelligence.MatchWatchesForEvent
 import com.mezo.trace.application.usecase.sources.CreateSource
 import com.mezo.trace.application.usecase.sources.FetchEndpointNow
@@ -123,7 +124,9 @@ class ApiContainer(
         JdbcEvidenceRepository(sql),
         txRunner,
     )
-    val deriveEvents = DeriveEventsFromEvidence(eventRepo, txRunner)
+    val eventClusterer = com.mezo.trace.application.usecase.intelligence.EventClusterer(eventRepo, txRunner)
+    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, txRunner)
+    val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
     val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, txRunner)
     val fetchEndpointNow = FetchEndpointNow(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,

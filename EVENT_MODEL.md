@@ -3,7 +3,15 @@
 > Phase 0 contract. The event is the central product object: **one event, many
 > pieces of evidence** (ADR-004).
 >
-> **Implementation status:** Phase 4 ships the deterministic slice —
+> **Implementation status:** Phase 5 ships the event engine on top of the
+> Phase 4 slice: source-scoped clustering candidates with a **version-identity
+> hard gate** (`v3.0.0` ≠ `v3.1.0`), title-Jaccard ≥ 0.6 within a 72 h window,
+> deterministic `ConfidenceCalculator` storing `confidence_score` +
+> `confidence_reasoning` (corroboration counted across distinct endpoints),
+> and a `MarkEventContested` transition preserving contradicting evidence
+> (CONTESTED status, CONTRADICTING role) — never silently merged.
+>
+> Phase 4 originally shipped:
 > SOFTWARE_RELEASE events derived from GitHub release evidence, keyed by a
 > unique `external_ref` (`provider` + `external_id`) so pipeline replays never
 > duplicate. Confidence defaults HIGH for first-party structured data;
