@@ -218,6 +218,78 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
             }
         }
 
+    override fun searchEvents(
+        query: String,
+        filters: com.mezo.trace.application.port.EventSearchFilters,
+        limit: Int,
+    ): List<Event> {
+        // websearch_to_tsquery tolerates natural phrasing; empty queries fall
+        // through to filter-only scans, still bounded.
+        val conditions = StringBuilder("1 = 1")
+        val params = mutableListOf<Any>()
+
+        if (query.isNotBlank()) {
+            conditions.append(" AND search_vec @@ websearch_to_tsquery('english', ?)")
+            params.add(query.trim())
+        }
+        filters.type?.let { t ->
+            conditions.append(" AND type = ?")
+            params.add(t)
+        }
+        filters.from?.let {
+            conditions.append(" AND COALESCE(occurred_at, discovered_at) >= ?")
+            params.add(java.time.OffsetDateTime.ofInstant(it, java.time.ZoneOffset.UTC))
+        }
+        filters.to?.let {
+            conditions.append(" AND COALESCE(occurred_at, discovered_at) <= ?")
+            params.add(java.time.OffsetDateTime.ofInstant(it, java.time.ZoneOffset.UTC))
+        }
+        val filterSourceId = filters.sourceId
+        if (filterSourceId != null) {
+            conditions.append(
+                " AND EXISTS (SELECT 1 FROM event_evidence ee2 JOIN evidence e2 ON e2.id = ee2.evidence_id " +
+                    "WHERE ee2.event_id = events.id AND e2.source_id = ?::uuid)",
+            )
+            params.add(filterSourceId)
+        }
+        val filterEntityId = filters.entityId
+        if (filterEntityId != null) {
+            conditions.append(
+                " AND EXISTS (SELECT 1 FROM event_entities ent WHERE ent.event_id = events.id AND ent.entity_id = ?::uuid)",
+            )
+            params.add(filterEntityId)
+        }
+
+        var rankClause = ""
+        if (query.isNotBlank()) {
+            rankClause = ", ts_rank(search_vec, websearch_to_tsquery('english', ?)) DESC"
+            params.add(query.trim())
+        }
+        params.add(limit)
+
+        val sqlText = """
+            SELECT * FROM events
+            WHERE $conditions
+            ORDER BY COALESCE(occurred_at, discovered_at) DESC$rankClause
+            LIMIT ?
+        """.trimIndent()
+
+        return sql.current().prepareStatement(sqlText).use { ps ->
+            params.forEachIndexed { i, value ->
+                when (value) {
+                    is String -> ps.setString(i + 1, value)
+                    is java.time.OffsetDateTime -> ps.setObject(i + 1, value)
+                    is Int -> ps.setInt(i + 1, value)
+                }
+            }
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<Event>()
+                while (rs.next()) out += rs.toEvent()
+                out
+            }
+        }
+    }
+
     override fun latestDiscoveredBySource(sourceId: String, limit: Int): List<Event> {
         val uuid = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull() ?: return emptyList()
         return sql.current().prepareStatement(

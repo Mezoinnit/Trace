@@ -1,6 +1,7 @@
 package com.mezo.trace.ai
 
 import com.mezo.trace.application.port.AiProvider
+import com.mezo.trace.application.port.InvestigationQuery
 import com.mezo.trace.application.port.WatchIntentProposal
 
 /**
@@ -71,6 +72,66 @@ class RuleBasedLocalProvider : AiProvider {
         val bTokens = tokens(eventText)
         val overlap = a.intersect(bTokens).size.toDouble()
         return (overlap / a.size).coerceIn(0.0, 1.0) // share of description present in event
+    }
+
+    override fun parseInvestigationQuery(input: String): InvestigationQuery {
+        val text = input.trim()
+        if (text.isEmpty()) {
+            throw com.mezo.trace.domain.ValidationException("input", "ask a question")
+        }
+        val lower = text.lowercase()
+
+        // Time cues.
+        val lastDays: Int? = when {
+            lower.contains("today") -> 1
+            lower.contains("this week") || lower.contains("last week") -> 7
+            lower.contains("this month") || lower.contains("last month") -> 30
+            lower.contains("this year") -> 365
+            else -> Regex("""(?:last|past)\s+(\d{1,3})\s+days?""").find(lower)?.groupValues?.get(1)?.toIntOrNull()
+        }
+
+        // Entity hint: "in X" / "for X" / "about X".
+        val hintRegex = Regex("""\b(?:in|for|about|regarding)\s+([A-Za-z0-9_.-]{2,64}(?:/[A-Za-z0-9_.-]{2,64})?)""", RegexOption.IGNORE_CASE)
+        val entityHint = hintRegex.findAll(text)
+            .map { it.groupValues[1].trim(' ', '.', '?') }
+            .firstOrNull { it.lowercase() !in setOf("this month", "this week", "today") }
+
+        // Remaining text terms as extra keyword context. Everything that is
+        // question boilerplate, a time cue, or the subject itself is stripped:
+        // when the hint resolves, the subject scopes the search via identity
+        // rather than free text (plan §4.12).
+        val excluded = buildSet {
+            addAll(STOP_WORDS)
+            addAll(INVESTIGATION_STOP)
+            entityHint?.let { hint ->
+                val h = hint.lowercase()
+                add(h)
+                addAll(h.split('/', '-', '.', '_'))
+            }
+        }
+        val hintNorm = entityHint?.lowercase().orEmpty()
+        val textQuery = lower
+            .replace(Regex("[^a-z0-9_./ ]"), " ")
+            .split(Regex("\\s+"))
+            .map { it.trim('-', '.', '/') }
+            .filter { it.length > 1 }
+            .filter { tok ->
+                tok !in excluded &&
+                    // Drop fragments of the subject itself (e.g. "acme/inv"
+                    // when hint is "acme/inv-abc") — identity already scopes.
+                    (hintNorm.isEmpty() || !(hintNorm.contains(tok) || tok.contains(hintNorm))) &&
+                    // Drop question boilerplate variants ("what", "changed").
+                    tok !in QUESTION_STOP
+            }
+            .distinct()
+            .take(6)
+            .joinToString(" ")
+
+        return InvestigationQuery(
+            textQuery = textQuery,
+            entityHint = entityHint?.lowercase(),
+            lastDays = lastDays?.coerceIn(1, 3650),
+        )
     }
 
     // ---- internals ----
@@ -151,5 +212,12 @@ class RuleBasedLocalProvider : AiProvider {
         )
 
         val CUE_PHRASES = listOf("about", "when", "related to", "regarding", "mentioning")
+
+        private val QUESTION_STOP = setOf("what", "changed", "whats", "tell", "about")
+        val INVESTIGATION_STOP = setOf(
+            "in", "for", "about", "regarding", "of", "the", "this", "that",
+            "last", "past", "days", "day", "week", "weeks", "month", "months",
+            "year", "years", "today", "items", "item", "show",
+        )
     }
 }

@@ -13,6 +13,9 @@
 > - Selection is configuration-driven (`AI_PROVIDER`, default `local`);
 >   Gemini/OpenAI plug in as additional `AiProvider`s without architecture
 >   change — never as hard dependencies.
+> - `parseInvestigationQuery` implemented in the LocalProvider: time cues
+>   (today/this week/this month/last N days), `in|for|about X` entity hints,
+>   question-boilerplate stripping so the subject scopes by identity.
 > - Input limit 500 chars enforced at the gateway; provider output is
 >   validated defensively; every operation is recorded to `ai_operations`
 >   via a transaction-aware recorder for reproducibility.

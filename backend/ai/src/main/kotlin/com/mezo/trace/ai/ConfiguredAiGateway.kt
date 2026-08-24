@@ -4,6 +4,7 @@ import com.mezo.trace.application.port.AiGateway
 import com.mezo.trace.application.port.AiOperationRecord
 import com.mezo.trace.application.port.AiOperationRecorder
 import com.mezo.trace.application.port.AiProvider
+import com.mezo.trace.application.port.InvestigationQuery
 import com.mezo.trace.application.port.WatchIntentProposal
 import com.mezo.trace.domain.ValidationException
 import java.security.MessageDigest
@@ -49,6 +50,15 @@ class ConfiguredAiGateway(
             keywordsInclude = proposal.keywordsInclude.map { it.lowercase().take(64) },
             keywordsExclude = proposal.keywordsExclude.map { it.lowercase().take(64) },
         )
+    }
+
+    override fun parseInvestigationQueryOrNull(input: String): InvestigationQuery? {
+        val provider = selected ?: return null
+        if (input.isBlank()) return null
+        val startedNanos = System.nanoTime()
+        val query = provider.parseInvestigationQuery(input.take(maxInputChars))
+        record(provider, "PARSE_INVESTIGATION_QUERY", input, mapOf("text" to query.textQuery), elapsedMs(startedNanos))
+        return query
     }
 
     override fun semanticRelevanceOrNull(description: String, eventText: String): Double? {

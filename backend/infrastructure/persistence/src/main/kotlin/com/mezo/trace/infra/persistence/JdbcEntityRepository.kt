@@ -133,6 +133,31 @@ class JdbcEntityRepository(private val sql: SqlConnections) : EntityRepository {
         }
     }
 
+    override fun search(query: String, limit: Int): List<com.mezo.trace.domain.Entity> =
+        sql.current().prepareStatement(
+            """
+            SELECT DISTINCT e.*, similarity(e.canonical_name, ?) AS score
+            FROM entities e
+            LEFT JOIN entity_aliases a ON a.entity_id = e.id
+            WHERE (e.canonical_name % ?::text OR a.alias % ?::text OR lower(a.alias) = lower(?))
+              AND e.merged_into_entity_id IS NULL
+            ORDER BY score DESC, e.canonical_name
+            LIMIT ?
+            """.trimIndent(),
+        ).use { ps ->
+            val q = query.trim()
+            ps.setString(1, q)
+            ps.setString(2, q)
+            ps.setString(3, q)
+            ps.setString(4, q)
+            ps.setInt(5, limit)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<com.mezo.trace.domain.Entity>()
+                while (rs.next()) out += rs.toEntity()
+                out
+            }
+        }
+
     override fun eventsForEntity(entityId: String, limit: Int): List<com.mezo.trace.domain.Event> {
         val uuid = runCatching { UUID.fromString(entityId) }.getOrNull() ?: return emptyList()
         return sql.current().prepareStatement(

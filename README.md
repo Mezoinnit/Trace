@@ -154,7 +154,13 @@ Current status:
   the scheduler pass and recover on success.
   Parked by design: Room offline cache (§31), DIGEST scheduling, per-endpoint
   min/max interval overrides.
-- Phases 11+ — see the plan (search + investigations next).
+- **Phase 11 — completed:** search & investigations. Postgres FTS
+  (generated tsvector on events) + pg_trgm over entity names/aliases and
+  evidence titles; composable filters (type/source/entity/time window);
+  relevance-ranked `/api/v1/search`; `/api/v1/investigations` interprets NL
+  questions via the LocalProvider and returns structured intelligence;
+  Android Ask tab wired end-to-end.
+- Phases 12+ — see the plan (historical intelligence next).
 
 ## Non-goals for V1
 

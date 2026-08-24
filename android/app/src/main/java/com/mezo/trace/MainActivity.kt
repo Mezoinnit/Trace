@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -113,6 +114,7 @@ class MainActivity : ComponentActivity() {
                 composable("home") {
                     HomeRoute(app) { id -> navController.navigate("event/$id") }
                 }
+                composable("search") { SearchRoute(app) { id -> navController.navigate("event/$id") } }
                 composable("sources") { SourcesRoute(app) }
                 composable("watches") { WatchesRoute(app) }
                 composable("alerts") {
@@ -218,6 +220,38 @@ class MainActivity : ComponentActivity() {
 
         // keep input change handler wired
         state = state.copy(onInputChange = { state = state.copy(input = it) })
+    }
+
+    @Composable
+    private fun SearchRoute(app: TraceApp, onOpenEvent: (String) -> Unit) {
+        val scope = rememberCoroutineScope()
+        var state by remember {
+            mutableStateOf(com.mezo.trace.feature.search.SearchUiState())
+        }
+
+        state = state.copy(onQueryChange = { state = state.copy(query = it) })
+
+        com.mezo.trace.feature.search.SearchScreen(
+            state = state,
+            onSearch = {
+                scope.launch {
+                    state = state.copy(busy = true, error = null)
+                    try {
+                        val result = app.events.investigate(state.query.trim())
+                        state = com.mezo.trace.feature.search.SearchUiState(
+                            query = state.query,
+                            searched = true,
+                            results = result.events,
+                            interpretation = result.interpretation,
+                            onQueryChange = { q -> state = state.copy(query = q) },
+                        )
+                    } catch (e: Exception) {
+                        state = state.copy(busy = false, searched = true, error = e.message)
+                    }
+                }
+            },
+            onOpenEvent = onOpenEvent,
+        )
     }
 
     @Composable

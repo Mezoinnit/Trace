@@ -355,11 +355,33 @@ Event detail (see EVENT_MODEL.md for semantics):
 | POST | `/api/v1/notifications/{id}/open` | mark opened |
 | GET | `/api/v1/alerts` | alerts for debugging; also queryable per Watch |
 
-### Investigations
+### Search & Investigations
+
+**Implemented in Phase 11** (Postgres FTS + pg_trgm, ADR-013).
 
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `/api/v1/investigations` | natural-language query → structured result (Phase 11) |
+| GET | `/api/v1/search` | full-text event search with filters + entity matches |
+| POST | `/api/v1/investigations` | NL question → interpreted, structured result |
+
+Search query params: `q`, `type`, `source_id`, `entity_id`, `from`, `to`
+(RFC 3339), `limit`. Returns the event-feed shape ranked by relevance.
+
+Investigations interpret the question first — time cues ("this month" →
+30d), entity hints ("in kotlin") resolved via alias/canonical identity —
+then run the scoped search:
+
+```json
+{
+  "interpretation": "events for 'acme/widget' within 30d matching \"\"",
+  "entity_hint": "acme/widget",
+  "last_days": 30,
+  "events": [ …event feed shape… ]
+}
+```
+
+When the hint resolves to an entity, the subject scopes by **identity**,
+not free text; leftover keywords only narrow further.
 
 ### Health
 

@@ -21,6 +21,19 @@ data class WatchIntentProposal(
 )
 
 /**
+ * Structured interpretation of a natural-language investigation question
+ * (plan §3.4, §18 parseInvestigationQuery).
+ */
+data class InvestigationQuery(
+    /** Free-text search terms for the event index. */
+    val textQuery: String,
+    /** Entity hint (name/alias fragment) resolved before searching. */
+    val entityHint: String? = null,
+    /** Recency window in days; null = unbounded. */
+    val lastDays: Int? = null,
+)
+
+/**
  * Provider SPI (ADR-007). Implementations: deterministic LocalProvider now;
  * paid providers (Gemini/OpenAI/Anthropic) later via configuration only.
  */
@@ -35,6 +48,8 @@ interface AiProvider {
      * event's text. 0.0..1.0. Deterministic providers may approximate.
      */
     fun semanticRelevance(description: String, eventText: String): Double
+
+    fun parseInvestigationQuery(input: String): InvestigationQuery
 }
 
 /**
@@ -55,6 +70,9 @@ interface AiGateway {
 
     /** Null when no provider is available (caller degrades gracefully). */
     fun semanticRelevanceOrNull(description: String, eventText: String): Double?
+
+    /** Null when no provider is available (caller degrades gracefully). */
+    fun parseInvestigationQueryOrNull(input: String): InvestigationQuery?
 }
 
 /** One reproducible AI operation (DATA_MODEL ai_operations). */
