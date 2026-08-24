@@ -34,6 +34,7 @@ import com.mezo.trace.ui.components.Loading
 fun WatchesScreen(
     state: WatchesUiState,
     onCreate: () -> Unit,
+    onInterpret: () -> Unit,
     onDelete: (WatchDto) -> Unit,
     onToggleEndpoint: (SourceEndpointDto) -> Unit,
 ) {
@@ -47,6 +48,7 @@ fun WatchesScreen(
             CreateWatchCard(
                 state = state,
                 onCreate = onCreate,
+                onInterpret = onInterpret,
                 onToggleEndpoint = onToggleEndpoint,
             )
         }
@@ -90,6 +92,7 @@ fun WatchesScreen(
 private fun CreateWatchCard(
     state: WatchesUiState,
     onCreate: () -> Unit,
+    onInterpret: () -> Unit,
     onToggleEndpoint: (SourceEndpointDto) -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
@@ -109,6 +112,22 @@ private fun CreateWatchCard(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            OutlinedTextField(
+                value = state.newDescription,
+                onValueChange = state.onDescribeChange,
+                label = { Text("…or describe it in plain language") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onInterpret, enabled = !state.busy && state.newDescription.isNotBlank()) {
+                    Text(if (state.interpreting) "Interpreting…" else "Fill from description")
+                }
+            }
+            state.interpretNote?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            }
 
             Text("Endpoints", style = MaterialTheme.typography.titleSmall)
             if (state.availableEndpoints.isEmpty()) {
@@ -151,9 +170,14 @@ data class WatchesUiState(
     val selectedEndpoints: Set<String> = emptySet(),
     val newName: String = "",
     val newKeywordsInclude: String = "",
+    val newDescription: String = "",
+    val interpreting: Boolean = false,
+    val interpretNote: String? = null,
     val error: String? = null,
     val onNameChange: (String) -> Unit = {},
     val onKeywordsChange: (String) -> Unit = {},
+    val onDescribeChange: (String) -> Unit = {},
+    val onInterpret: () -> Unit = {},
     val onCancelCreate: () -> Unit = {},
 ) {
     val canSubmit: Boolean

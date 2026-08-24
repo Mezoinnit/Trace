@@ -21,6 +21,7 @@ include(
     ":infrastructure:fetch",
     ":infrastructure:persistence",
     ":adapters",
+    ":ai",
     ":server:api",
     ":server:worker",
     ":server:scheduler",

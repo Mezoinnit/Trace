@@ -1,6 +1,24 @@
 # Trace — AI Gateway and Usage Rules
 
-> Phase 0 contract. AI is an intelligence **layer**, never the system of record
+> Phase 0 contract.
+>
+> **Phase 10 implementation status:**
+> - `AiGateway` port lives in the application layer; providers implement
+>   `AiProvider` in the `:ai` module. The domain never imports SDKs.
+> - **LocalProvider shipped**: `RuleBasedLocalProvider` — deterministic,
+>   $0, offline NL watch interpretation (GitHub URLs / `owner/repo` tokens,
+>   quoted or cue-phrase keywords, "only major/critical" significance floor)
+>   plus token-overlap semantic relevance that activates the stored watch
+>   `semantic` field during matching.
+> - Selection is configuration-driven (`AI_PROVIDER`, default `local`);
+>   Gemini/OpenAI plug in as additional `AiProvider`s without architecture
+>   change — never as hard dependencies.
+> - Input limit 500 chars enforced at the gateway; provider output is
+>   validated defensively; every operation is recorded to `ai_operations`
+>   via a transaction-aware recorder for reproducibility.
+> - Without AI configured, ingestion/matching/alerting continue; the
+>   semantic constraint degrades to pass-with-note (`semantic_evaluated=false`
+>   in the alert relevance map). AI is an intelligence **layer**, never the system of record
 > (plan §2.5, ADR-007). The core domain stays deterministic and auditable and
 > must operate with AI unavailable.
 

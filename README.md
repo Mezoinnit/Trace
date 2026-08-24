@@ -140,7 +140,14 @@ Current status:
   Push (FCM) is intentionally not wired yet — it requires a Firebase project
   (external account) conflicting with $0 local dev; alerts remain visible
   in-app per the graceful-degradation rule, device registration ships with it.
-- Phases 10+ — see the plan (AI intelligence layer next).
+- **Phase 10 — completed:** AI intelligence layer. AiGateway + provider SPI;
+  deterministic RuleBasedLocalProvider ($0, offline) delivering NL watch
+  interpretation ("Monitor androidx/androidx releases… when Compose changes"
+  → confirmable proposal per §3.2), semantic watch-field matching with a 0.5
+  threshold, input limits, defensive output validation, and ai_operations
+  reproducibility records. Paid providers remain config-pluggable only.
+  Android "Fill from description" wires interpretation into watch creation.
+- Phases 11+ — see the plan (search + investigations next).
 
 ## Non-goals for V1
 

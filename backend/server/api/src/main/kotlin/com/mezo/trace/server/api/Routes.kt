@@ -290,6 +290,25 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
 
         // ---- Watches (tenant-owned monitoring rules, Phase 4) ----
 
+        // NL interpretation → structured proposal the user confirms (§3.2).
+        post("/watches/interpret") {
+            call.requireUserId(c.tokenIssuer)
+            val request = call.receive<WatchInterpretRequest>()
+            val proposal = c.aiGateway.parseWatchIntent(request.input)
+            call.respond(
+                HttpStatusCode.OK,
+                WatchIntentProposalDto(
+                    endpointUri = proposal.endpointUri,
+                    adapterId = proposal.adapterId,
+                    suggestedName = proposal.suggestedName,
+                    keywordsInclude = proposal.keywordsInclude,
+                    keywordsExclude = proposal.keywordsExclude,
+                    minSignificance = proposal.minSignificance,
+                    uncertainties = proposal.uncertainties,
+                ),
+            )
+        }
+
         post("/watches") {
             val userId = call.requireUserId(c.tokenIssuer)
             val request = call.receive<WatchCreateRequest>()

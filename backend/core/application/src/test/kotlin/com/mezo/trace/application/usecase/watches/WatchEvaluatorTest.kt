@@ -52,61 +52,73 @@ class WatchEvaluatorTest {
 
     @Test
     fun `unconstrained watch matches`() {
-        val result = WatchEvaluator.evaluate(watch(), event())
+        val result = WatchEvaluator.evaluate(
+            watch = watch(), event = event(), now = now)
         assertTrue(result.matched)
     }
 
     @Test
     fun `endpoint containment is enforced`() {
-        val result = WatchEvaluator.evaluate(watch(), event(endpointId = "other"))
+        val result = WatchEvaluator.evaluate(
+            watch = watch(), event = event(endpointId = "other"), now = now)
         assertFalse(result.matched)
         assertTrue(result.rejectedBecause.contains("endpoint_not_watched"))
     }
 
     @Test
     fun `keyword include requires a hit and exclude blocks on any hit`() {
-        val miss = WatchEvaluator.evaluate(watch(include = listOf("kotlin")), event())
+        val miss = WatchEvaluator.evaluate(
+            watch = watch(include = listOf("kotlin")), event = event(), now = now)
         assertFalse(miss.matched)
         assertTrue(miss.rejectedBecause.contains("keyword_include_miss"))
 
-        val hit = WatchEvaluator.evaluate(watch(include = listOf("WIDGET")), event())
+        val hit = WatchEvaluator.evaluate(
+            watch = watch(include = listOf("WIDGET")), event = event(), now = now)
         assertTrue(hit.matched)
 
-        val blocked = WatchEvaluator.evaluate(watch(exclude = listOf("beta")), event(summary = "beta quality"))
+        val blocked = WatchEvaluator.evaluate(
+            watch = watch(exclude = listOf("beta")), event = event(summary = "beta quality"), now = now)
         assertFalse(blocked.matched)
         assertTrue(blocked.rejectedBecause.contains("keyword_exclude_hit"))
 
         // Case-insensitive matching across title and summary.
-        val caseHit = WatchEvaluator.evaluate(watch(include = listOf("released")), event(title = "WIDGET 3.0 RELEASED"))
+        val caseHit = WatchEvaluator.evaluate(
+            watch = watch(include = listOf("released")), event = event(title = "WIDGET 3.0 RELEASED"), now = now)
         assertTrue(caseHit.matched)
     }
 
     @Test
     fun `significance and confidence thresholds compare band order`() {
-        val sigBlocked = WatchEvaluator.evaluate(watch(minSignificance = "HIGH"), event(significance = "LOW"))
+        val sigBlocked = WatchEvaluator.evaluate(
+            watch = watch(minSignificance = "HIGH"), event = event(significance = "LOW"), now = now)
         assertEquals(listOf("significance_below_threshold"), sigBlocked.rejectedBecause)
 
-        val sigPass = WatchEvaluator.evaluate(watch(minSignificance = "high"), event(significance = "CRITICAL"))
+        val sigPass = WatchEvaluator.evaluate(
+            watch = watch(minSignificance = "high"), event = event(significance = "CRITICAL"), now = now)
         assertTrue(sigPass.matched)
 
-        val confBlocked = WatchEvaluator.evaluate(watch(minConfidence = "VERY_HIGH"), event(confidence = "MEDIUM"))
+        val confBlocked = WatchEvaluator.evaluate(
+            watch = watch(minConfidence = "VERY_HIGH"), event = event(confidence = "MEDIUM"), now = now)
         assertTrue(confBlocked.rejectedBecause.contains("confidence_below_threshold"))
     }
 
     @Test
     fun `time window uses occurred_at falling back to discovered_at`() {
         val old = WatchEvaluator.evaluate(
-            watch(maxAgeHours = 24),
-            event(occurredAt = now.minusSeconds(72 * 3600)),
+            watch = watch(maxAgeHours = 24),
+            event = event(occurredAt = now.minusSeconds(72 * 3600)),
+            now = now,
         )
         assertTrue(old.rejectedBecause.contains("outside_time_window"))
 
-        val fresh = WatchEvaluator.evaluate(watch(maxAgeHours = 24), event())
+        val fresh = WatchEvaluator.evaluate(
+            watch = watch(maxAgeHours = 24), event = event(), now = now)
         assertTrue(fresh.matched)
 
         val noOccurredAt = WatchEvaluator.evaluate(
-            watch(maxAgeHours = 24),
-            event(occurredAt = null, discoveredAt = now.minusSeconds(48 * 3600)),
+            watch = watch(maxAgeHours = 24),
+            event = event(occurredAt = null, discoveredAt = now.minusSeconds(48 * 3600)),
+            now = now,
         )
         assertTrue(noOccurredAt.rejectedBecause.contains("outside_time_window"))
     }
@@ -117,6 +129,7 @@ class WatchEvaluatorTest {
             watch(entityIds = setOf("e-compose")),
             event(),
             linkedEntityIds = setOf("e-other", "e-compose"),
+            now = now,
         )
         assertTrue(pass.matched)
 
@@ -124,6 +137,7 @@ class WatchEvaluatorTest {
             watch(entityIds = setOf("e-compose")),
             event(),
             linkedEntityIds = setOf("e-other"),
+            now = now,
         )
         assertTrue(fail.rejectedBecause.contains("no_watched_entity"))
     }

@@ -112,6 +112,9 @@ class ApiClient(
 
     suspend fun deleteWatch(id: String): Unit = authedDelete("/api/v1/watches/$id")
 
+    suspend fun interpretWatch(input: String): WatchIntentProposalDto =
+        authedPost("/api/v1/watches/interpret", WatchInterpretRequest(input))
+
     // ---- Alerts ----
 
     suspend fun alerts(workspaceId: String): List<AlertDto> =

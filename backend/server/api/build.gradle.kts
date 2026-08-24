@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":infrastructure:security"))
     implementation(project(":infrastructure:fetch"))
     implementation(project(":adapters"))
+    implementation(project(":ai"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

@@ -19,6 +19,7 @@ class MatchWatchesForEvent(
     private val alerts: AlertRepository,
     private val audit: AuditLogRepository,
     private val entities: com.mezo.trace.application.port.EntityRepository?,
+    private val aiGateway: com.mezo.trace.application.port.AiGateway? = null,
     private val tx: TxRunner,
 ) {
 
@@ -41,15 +42,25 @@ class MatchWatchesForEvent(
                 ?.toSet()
                 ?: emptySet()
 
+            val eventText = event.title + "\n" + event.summary.orEmpty()
             val candidates = watches
                 .findActiveForEndpoint(endpointId)
                 .filter { watch ->
-                    // Phase 7 full rule evaluation — deterministic only;
-                    // the semantic field is stored but not matched until the
-                    // AI layer exists.
-                    com.mezo.trace.application.usecase.watches.WatchEvaluator.evaluate(
+                    val base = com.mezo.trace.application.usecase.watches.WatchEvaluator.evaluate(
                         watch, event, linkedEntityIds,
-                    ).matched
+                    )
+                    if (!base.matched) return@filter false
+
+                    // Phase 10: the stored semantic description now participates
+                    // via the AI gateway; without a provider it degrades to pass
+                    // and is noted in the alert's relevance map.
+                    val semantic = watch.semantic?.trim()
+                    if (semantic.isNullOrEmpty()) {
+                        true
+                    } else {
+                        val score = aiGateway?.semanticRelevanceOrNull(semantic, eventText)
+                        score == null || score >= SEMANTIC_THRESHOLD
+                    }
                 }
 
             var created = 0
@@ -64,6 +75,7 @@ class MatchWatchesForEvent(
                         relevance = mapOf(
                             "matched_endpoint" to endpointId,
                             "matched_event_type" to event.type,
+                            "semantic_evaluated" to (aiGateway?.available == true).toString(),
                         ),
                         significance = event.significance,
                         status = com.mezo.trace.domain.AlertStatus.PENDING,
@@ -89,5 +101,10 @@ class MatchWatchesForEvent(
             }
             MatchSummary(candidates.size, created, workspaces)
         }
+    }
+
+    companion object {
+        /** Minimum semantic relevance for a semantic-constrained watch. */
+        const val SEMANTIC_THRESHOLD = 0.5
     }
 }
