@@ -207,6 +207,7 @@ class MainActivity : ComponentActivity() {
                 WatchesUiState(
                     onNameChange = { },
                     onKeywordsChange = { },
+                    onDescribeChange = { },
                     onCancelCreate = { },
                 ),
             )
@@ -226,12 +227,63 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             state = state.copy(onNameChange = { state = state.copy(newName = it) })
             state = state.copy(onKeywordsChange = { state = state.copy(newKeywordsInclude = it) })
-            state = state.copy(onCancelCreate = { state = state.copy(showCreateForm = false) })
+            state = state.copy(onDescribeChange = { state = state.copy(newDescription = it) })
+            state = state.copy(onCancelCreate = { state = state.copy(showCreateForm = false, interpretNote = null) })
+
+            state = state.copy(onInterpret = {
+                scope.launch {
+                    state = state.copy(interpreting = true, error = null, interpretNote = null)
+                    try {
+                        val proposal = app.watches.interpret(state.newDescription.trim())
+
+                        // Converge the proposed source so it can be selected.
+                        val endpoints = if (
+                            proposal.endpointUri != null && proposal.adapterId != null
+                        ) {
+                            app.sources.createSourceFromProposal(proposal)
+                            app.sources.allEndpoints()
+                        } else {
+                            state.availableEndpoints
+                        }
+                        val selected = if (proposal.endpointUri != null) {
+                            endpoints.filter { it.endpointUri == proposal.endpointUri }
+                                .map { it.id }.toSet()
+                        } else {
+                            state.selectedEndpoints
+                        }
+
+                        val notes = buildList {
+                            if (proposal.uncertainties.isNotEmpty()) {
+                                add("Check: " + proposal.uncertainties.joinToString(" · "))
+                            }
+                            if (proposal.endpointUri == null) {
+                                add("add a source manually for the endpoint")
+                            }
+                        }
+                        val interpretNote = notes.joinToString(" · ").takeIf { it.isNotBlank() }
+
+                        state = state.copy(
+                            interpreting = false,
+                            availableEndpoints = endpoints,
+                            selectedEndpoints = selected,
+                            newName = proposal.suggestedName ?: state.newName,
+                            newKeywordsInclude = proposal.keywordsInclude.joinToString(", "),
+                            interpretNote = interpretNote,
+                        )
+                    } catch (e: Exception) {
+                        state = state.copy(interpreting = false, error = e.message)
+                    }
+                }
+            })
             refresh()
         }
 
         WatchesScreen(
             state = state,
+            onInterpret = {
+                // handled through state.onInterpret set below
+                state.onInterpret()
+            },
             onCreate = {
                 scope.launch {
                     state = state.copy(busy = true, error = null)

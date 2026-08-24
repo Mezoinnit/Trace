@@ -51,6 +51,14 @@ class SourcesRepository(private val api: ApiClient) {
     suspend fun create(proposal: SourceProposalDto): SourceDetailDto =
         api.createSource(proposal.endpointUri, proposal.adapterId, proposal.displayName)
 
+    /** Registers the endpoint from an AI intent proposal (idempotent). */
+    suspend fun createSourceFromProposal(
+        proposal: com.mezo.trace.core.network.WatchIntentProposalDto,
+    ): SourceDetailDto? =
+        runCatching {
+            api.createSource(proposal.endpointUri!!, proposal.adapterId!!, proposal.suggestedName)
+        }.getOrNull()
+
     suspend fun list(): List<SourceDetailDto> = api.sources()
 
     /** All endpoints across sources — the picker for watch creation. */
@@ -97,6 +105,9 @@ class WatchesRepository(
     }
 
     suspend fun delete(id: String) = api.deleteWatch(id)
+
+    /** NL interpretation → proposal the user confirms (plan §3.2). */
+    suspend fun interpret(input: String) = api.interpretWatch(input)
 }
 
 class AlertsRepository(

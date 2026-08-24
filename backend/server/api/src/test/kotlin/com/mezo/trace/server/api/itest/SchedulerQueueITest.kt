@@ -153,17 +153,31 @@ class SchedulerQueueITest {
             ).single().id
         }
 
-        // Pass 1: fresh endpoint is due → exactly one enqueue.
-        val pass1 = container.scheduler.execute()
-        assertEquals(1, pass1.enqueued)
-        assertEquals(0, pass1.skippedPending)
+        // The embedded database is shared across test classes, so earlier
+        // endpoints may also be due. All assertions below are scoped to THIS
+        // test's endpoint via its queued-job count.
 
-        // Pass 2: schedule was advanced → nothing due.
-        val pass2 = container.scheduler.execute()
-        assertEquals(0, pass2.enqueued)
+        fun pendingJobsFor(endpoint: String): Int =
+            container.txRunner.run {
+                container.sql.current().prepareStatement(
+                    "SELECT count(*) FROM jobs WHERE type='FETCH_SOURCE' " +
+                        "AND status IN ('QUEUED','LOCKED') AND payload->>'endpoint_id' = ?",
+                ).use { ps ->
+                    ps.setString(1, endpoint)
+                    ps.executeQuery().use { rs -> rs.next(); rs.getInt(1) }
+                }
+            }
+
+        // Pass 1: fresh endpoint is due → exactly one enqueue for it.
+        container.scheduler.execute()
+        assertEquals(1, pendingJobsFor(endpointId))
+
+        // Pass 2 while still pending → no duplicate enqueue.
+        container.scheduler.execute()
+        assertEquals(1, pendingJobsFor(endpointId))
 
         // Force the endpoint due again while its job is still QUEUED:
-        // the pending-job guard must prevent a duplicate enqueue.
+        // the pending-job guard must keep holding the line.
         container.txRunner.run {
             container.sql.current().prepareStatement(
                 "UPDATE source_health SET next_poll_at = now() WHERE endpoint_id = ?::uuid",
@@ -172,9 +186,8 @@ class SchedulerQueueITest {
                 ps.executeUpdate()
             }
         }
-        val pass3 = container.scheduler.execute()
-        assertEquals(0, pass3.enqueued)
-        assertEquals(1, pass3.skippedPending)
+        container.scheduler.execute()
+        assertEquals(1, pendingJobsFor(endpointId))
 
         // Worker-side handler runs the real pipeline against the stub.
         val outcome = container.fetchEndpointNow.execute(endpointId)

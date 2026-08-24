@@ -133,7 +133,30 @@ class ApiContainer(
     val mergeEntities = MergeEntities(entityRepo, auditLog, txRunner)
     val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, txRunner)
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
-    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, txRunner)
+    // AI layer (Phase 10, ADR-007): deterministic LocalProvider by default.
+    val aiGateway: com.mezo.trace.application.port.AiGateway =
+        com.mezo.trace.ai.ConfiguredAiGateway(
+            providers = listOf(com.mezo.trace.ai.RuleBasedLocalProvider()),
+            selectedProviderId = System.getenv("AI_PROVIDER") ?: "local",
+            operations = com.mezo.trace.application.port.AiOperationRecorder { record ->
+                txRunner.run {
+                    com.mezo.trace.infra.persistence.JdbcAiOperationsRepository(sql).record(
+                        operation = record.operation,
+                        provider = record.provider,
+                        model = record.model,
+                        inputRef = record.inputRef,
+                        outputJson = record.outputJson,
+                        tokensUsed = record.tokensUsed,
+                        latencyMs = record.latencyMs,
+                        cacheHit = record.cacheHit,
+                        at = record.at,
+                    )
+                }
+            },
+            clock = { clock.now() },
+        )
+
+    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, aiGateway, txRunner)
     val fetchEndpointNow = FetchEndpointNow(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,
         ingestEvidence, deriveEvents, matchWatches, txRunner, clock,

@@ -285,3 +285,19 @@ data class WatchUpdateRequest(
     @SerialName("min_significance") val minSignificance: String? = null,
     @SerialName("min_confidence") val minConfidence: String? = null,
 )
+
+// ---- AI watch interpretation (Phase 10) ----
+
+@Serializable
+data class WatchInterpretRequest(val input: String)
+
+@Serializable
+data class WatchIntentProposalDto(
+    @SerialName("endpoint_uri") val endpointUri: String?,
+    @SerialName("adapter_id") val adapterId: String?,
+    @SerialName("suggested_name") val suggestedName: String?,
+    @SerialName("keywords_include") val keywordsInclude: List<String>,
+    @SerialName("keywords_exclude") val keywordsExclude: List<String>,
+    @SerialName("min_significance") val minSignificance: String?,
+    val uncertainties: List<String>,
+)
