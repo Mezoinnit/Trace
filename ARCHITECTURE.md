@@ -176,15 +176,14 @@ SEND_NOTIFICATION, REINDEX_EVENT, GENERATE_SUMMARY`.
 
 ## 12. Android architecture
 
-Kotlin + Jetpack Compose, Clean Architecture, MVVM, Coroutines + Flow, Hilt.
+Kotlin + Jetpack Compose, Clean Architecture, MVVM, Coroutines + Flow.
 
-```text
-:app
-:core:model  :core:common  :core:network  :core:database
-:core:designsystem  :core:auth  :core:notifications
-:feature:home :feature:search :feature:watches :feature:sources
-:feature:events :feature:entities :feature:timeline :feature:settings
-```
+**Implemented structure (ADR-016):** single `:app` module whose packages
+mirror the planned modules — `core/network` (Ktor client per API.md),
+`core/data` (repositories + DataStore session), `feature/{home,sources,
+watches,alerts,events,auth}`, `ui/components`. Manual DI via `TraceApp`
+composition root; Hilt and Gradle module split deferred until scale
+justifies them.
 
 The backend remains the source of truth; Room is used only for client-side
 cache/offline state. The UI distinguishes `cached / syncing / current /

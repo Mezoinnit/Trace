@@ -133,7 +133,14 @@ Current status:
   expiry, idempotent enqueue); `IntervalCalculator` adapts polling from
   outcomes with jitter (items→min, quiet→geometric growth to max, failures→
   backoff, rate-limited→floor); worker/scheduler loops are live deployables.
-- Phases 9+ — see the plan (Android client next).
+- **Phase 9 — completed:** Android client. Auth (sign-in/register with
+  DataStore-backed session), home intelligence feed with pagination, source
+  resolve→confirm flow, watch creation with keyword rules, in-app alerts,
+  event detail; Ktor-client API layer with MockEngine unit tests.
+  Push (FCM) is intentionally not wired yet — it requires a Firebase project
+  (external account) conflicting with $0 local dev; alerts remain visible
+  in-app per the graceful-degradation rule, device registration ships with it.
+- Phases 10+ — see the plan (AI intelligence layer next).
 
 ## Non-goals for V1
 
