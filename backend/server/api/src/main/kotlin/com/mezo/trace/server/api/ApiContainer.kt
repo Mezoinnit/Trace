@@ -157,6 +157,9 @@ class ApiContainer(
         )
 
     val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, aiGateway, txRunner)
+    val investigate = com.mezo.trace.application.usecase.search.Investigate(
+        eventRepo, entityRepo, aiGateway, txRunner,
+    )
     val fetchEndpointNow = FetchEndpointNow(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,
         ingestEvidence, deriveEvents, matchWatches, txRunner, clock,

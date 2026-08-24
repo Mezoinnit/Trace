@@ -20,6 +20,15 @@ data class EventEvidenceView(
     val publishedAt: java.time.Instant?,
 )
 
+/** Structured search filters (plan §11 phase: time/source/type/entity). */
+data class EventSearchFilters(
+    val type: String? = null,
+    val sourceId: String? = null,
+    val entityId: String? = null,
+    val from: java.time.Instant? = null,
+    val to: java.time.Instant? = null,
+)
+
 /** One deterministic feed page (plan §28). */
 data class EventFeedPage(
     val events: List<Event>,
@@ -62,6 +71,12 @@ interface EventRepository {
     fun feedPage(cursor: String?, limit: Int): EventFeedPage
 
     fun latestDiscovered(limit: Int): List<Event>
+
+    /**
+     * Full-text event search ranked by relevance (plan §29).
+     * Filters compose; empty query matches everything the filters allow.
+     */
+    fun searchEvents(query: String, filters: EventSearchFilters, limit: Int): List<Event>
 
     /** Recent events with evidence contributed by this source (clustering scope). */
     fun latestDiscoveredBySource(sourceId: String, limit: Int): List<Event>

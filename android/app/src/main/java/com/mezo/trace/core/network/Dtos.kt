@@ -215,3 +215,16 @@ data class EntityDetailResponse(
     val entity: EntityChipDto,
     @SerialName("recent_events") val recentEvents: List<EventDto> = emptyList(),
 )
+
+// ---- Search & Investigations (Phase 11) ----
+
+@Serializable
+data class InvestigationRequest(val query: String)
+
+@Serializable
+data class InvestigationResponse(
+    val interpretation: String,
+    @SerialName("entity_hint") val entityHint: String?,
+    @SerialName("last_days") val lastDays: Int?,
+    val events: List<EventDto>,
+)

@@ -235,7 +235,9 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 | external_ref | jsonb | stable refs for re-identification |
 | created_at | timestamptz NOT NULL | |
 | updated_at | timestamptz NOT NULL | |
+| search_vec | tsvector GENERATED (title+summary, english) STORED | FTS (V13) |
 | INDEX (occurred_at DESC, id DESC) | | cursor pagination key |
+| INDEX gin(search_vec) | | Phase 11 search |
 
 ### event_evidence
 

@@ -102,6 +102,12 @@ class ApiClient(
 
     suspend fun event(id: String): EventDetailResponse = authedGet("/api/v1/events/$id")
 
+    suspend fun searchEvents(query: String): EventFeedResponse =
+        authedGet("/api/v1/search?q=" + java.net.URLEncoder.encode(query, "UTF-8"))
+
+    suspend fun investigate(query: String): InvestigationResponse =
+        authedPost("/api/v1/investigations", InvestigationRequest(query))
+
     suspend fun entity(id: String): EntityDetailResponse = authedGet("/api/v1/entities/$id")
 
     // ---- Watches ----

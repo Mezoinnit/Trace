@@ -312,6 +312,61 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             )
         }
 
+        // ---- Search & investigations (Phase 11) ----
+
+        get("/search") {
+            call.requireUserId(c.tokenIssuer)
+            val q = call.request.queryParameters["q"].orEmpty().take(200)
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 100)
+            val type = call.request.queryParameters["type"]
+            val sourceId = call.request.queryParameters["source_id"]
+            val entityId = call.request.queryParameters["entity_id"]
+
+            fun parseInstant(raw: String?): java.time.Instant? =
+                raw?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() }
+
+            val result = c.txRunner.run {
+                val matchedEvents = c.eventRepo.searchEvents(
+                    query = q,
+                    filters = com.mezo.trace.application.port.EventSearchFilters(
+                        type = type,
+                        sourceId = sourceId,
+                        entityId = entityId,
+                        from = parseInstant(call.request.queryParameters["from"]),
+                        to = parseInstant(call.request.queryParameters["to"]),
+                    ),
+                    limit = limit,
+                )
+                val matchedEntities = if (q.isNotBlank()) c.entityRepo.search(q, limit = 10) else emptyList()
+                matchedEvents to matchedEntities
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                EventFeedResponse(
+                    items = result.first.map(::eventDto),
+                    nextCursor = null,
+                ),
+            )
+        }
+
+        post("/investigations") {
+            call.requireUserId(c.tokenIssuer)
+            val request = call.receive<InvestigationRequest>()
+            val result = c.investigate.execute(request.query.take(500))
+            call.respond(
+                HttpStatusCode.OK,
+                InvestigationResponse(
+                    interpretation = result.interpretationText,
+                    entityHint = result.entityHint,
+                    lastDays = result.lastDays,
+                    events = result.events.map(::eventDto),
+                    entities = result.matchedEntities.map {
+                        EntityChipDto(it.id, it.canonicalName, it.type.name)
+                    },
+                ),
+            )
+        }
+
         // ---- Watches (tenant-owned monitoring rules, Phase 4) ----
 
         // NL interpretation → structured proposal the user confirms (§3.2).

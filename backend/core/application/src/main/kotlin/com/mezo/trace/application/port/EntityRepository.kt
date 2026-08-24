@@ -32,6 +32,9 @@ interface EntityRepository {
     /** Events referencing this entity, newest first (timelines, Phase 12). */
     fun eventsForEntity(entityId: String, limit: Int): List<com.mezo.trace.domain.Event>
 
+    /** Trigram name/alias search for entities (plan §29). */
+    fun search(query: String, limit: Int): List<com.mezo.trace.domain.Entity>
+
     /**
      * False-merge recovery primitive (plan §4.11, ADR-004): moves identifiers,
      * aliases, and event links from [loserId] to [survivorId] and marks the
