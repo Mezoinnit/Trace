@@ -88,7 +88,7 @@ class ApiClient(
         authedPost("/api/v1/sources", SourceCreateRequest(endpointUri, adapterId, displayName))
 
     suspend fun sources(): List<SourceDetailDto> =
-        authedGet("/api/v1/sources")
+        authedGet<ListResponse<SourceDetailDto>>("/api/v1/sources").items
 
     // ---- Events ----
 
@@ -113,7 +113,7 @@ class ApiClient(
     // ---- Watches ----
 
     suspend fun watches(workspaceId: String): List<WatchDto> =
-        authedGet("/api/v1/watches?workspace_id=$workspaceId")
+        authedGet<ListResponse<WatchDto>>("/api/v1/watches?workspace_id=$workspaceId").items
 
     suspend fun createWatch(request: WatchCreateRequest): WatchDto =
         authedPost("/api/v1/watches", request)
@@ -126,7 +126,7 @@ class ApiClient(
     // ---- Alerts ----
 
     suspend fun alerts(workspaceId: String): List<AlertDto> =
-        authedGet("/api/v1/alerts?workspace_id=$workspaceId")
+        authedGet<ListResponse<AlertDto>>("/api/v1/alerts?workspace_id=$workspaceId").items
 
     // ---- plumbing ----
 
@@ -177,3 +177,7 @@ internal data class ErrorEnvelope(val error: ErrorBody)
 internal data class ErrorBody(val code: String? = null, val message: String? = null)
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+
+
+@Serializable
+internal data class ListResponse<T>(val items: List<T>)

@@ -39,8 +39,11 @@ android {
     }
 
     defaultConfig {
-        // Emulator reaches host machine via 10.0.2.2.
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080\"")
+        // Default suits the emulator (host loopback = 10.0.2.2). For physical
+        // devices pass -PtraceBaseUrl=localhost together with
+        // `adb reverse tcp:8080 tcp:8080`.
+        val baseHost = (project.findProperty("traceBaseUrl") as String?) ?: "10.0.2.2"
+        buildConfigField("String", "BASE_URL", "\"http://$baseHost:8080\"")
     }
 }
 
