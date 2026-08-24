@@ -142,6 +142,23 @@ Query params: `cursor` (opaque), `limit` (1–100, default 50). Response:
 }
 ```
 
+`GET /api/v1/events/{id}` returns the event **plus its supporting evidence
+with source attribution and linked entities** (plan §3.5):
+
+```json
+{
+  "event": { … },
+  "evidence": [
+    {
+      "id": "…", "title": "v3.1.0", "canonical_url": "https://…",
+      "role": "SUPPORTING", "source_name": "acme/widget",
+      "source_trust": "OFFICIAL", "published_at": "…"
+    }
+  ],
+  "entities": [ { "id": "…", "name": "acme/widget", "type": "REPOSITORY" } ]
+}
+```
+
 ### Watches
 
 **Implemented in Phase 4** (deterministic core: endpoint + event-type rules).
@@ -170,6 +187,9 @@ Query params: `cursor` (opaque), `limit` (1–100, default 50). Response:
 
 Rules: at least one endpoint (max 20), non-blank name; unknown endpoints or
 foreign workspaces → `400`/`404`. Empty `event_types` matches all types.
+`notification_mode` (`IMMEDIATE` default, `DIGEST`, `NEVER`) persists per
+watch (§4.14); DIGEST scheduling activates with the FCM phase — until then
+all modes surface alerts in-app.
 Bounds (Rule 6): ≤10 entities, ≤20 terms per keyword list (≤64 chars),
 semantic ≤500 chars, `max_age_hours` 1–8760. `semantic` is stored but only
 evaluated from Phase 10.

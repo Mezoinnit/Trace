@@ -13,8 +13,11 @@
 >
 > The `semantic` field is stored and editable now but deliberately NOT part
 > of deterministic matching; it activates with the AI layer (Phase 10).
-> Alerts remain exactly-once via the `(watch_id, event_id)` unique constraint
-> (ADR-012), independent of evaluator results. Workspace membership is verified server-side on every
+> `notification_mode` (IMMEDIATE/DIGEST/NEVER) is stored and validated per
+> §4.14 — IMMEDIATE behaves as today, NEVER stays in-app-only once push ships,
+> DIGEST awaits the digest scheduler. Alerts remain exactly-once via the
+> `(watch_id, event_id)` unique constraint (ADR-012), independent of
+> evaluator results. Workspace membership is verified server-side on every
 > operation (client-supplied workspace_id is a claim, not a trust anchor).
 
 ## 1. Definition

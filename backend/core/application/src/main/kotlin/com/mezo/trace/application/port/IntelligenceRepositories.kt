@@ -6,6 +6,20 @@ import com.mezo.trace.domain.EventStatus
 import com.mezo.trace.domain.Watch
 import java.time.Instant
 
+/**
+ * Supporting evidence as exposed on event detail (plan §3.5) with source
+ * attribution — the traceability surface for "where did this come from".
+ */
+data class EventEvidenceView(
+    val evidenceId: String,
+    val title: String?,
+    val canonicalUrl: String?,
+    val role: String,
+    val sourceName: String?,
+    val sourceTrust: String,
+    val publishedAt: java.time.Instant?,
+)
+
 /** One deterministic feed page (plan §28). */
 data class EventFeedPage(
     val events: List<Event>,
@@ -24,6 +38,9 @@ interface EventRepository {
     fun insert(event: Event): Boolean
 
     fun linkEvidence(eventId: String, evidenceId: String, role: String = "SUPPORTING")
+
+    /** Supporting/contradicting evidence with source attribution. */
+    fun evidenceForEvent(eventId: String): List<EventEvidenceView>
 
     fun updateStatus(eventId: String, status: EventStatus)
 

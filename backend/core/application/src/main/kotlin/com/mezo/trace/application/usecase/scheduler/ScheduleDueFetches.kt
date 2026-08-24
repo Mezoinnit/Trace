@@ -37,6 +37,11 @@ class ScheduleDueFetches(
 
     fun execute(batchLimit: Int = 200): PassSummary {
         val now = clock.now()
+
+        // §9: sources that have gone quiet are marked STALE so users and
+        // operators see them; the next success restores HEALTHY.
+        tx.run { health.markStaleIfOverdue(now.minus(STALE_AFTER), now) }
+
         var enqueued = 0
         var skipped = 0
         var initialized = 0
@@ -102,4 +107,9 @@ class ScheduleDueFetches(
 
     private fun listDueEndpointIds(now: java.time.Instant, limit: Int): List<String> =
         tx.run { endpoints.findDueEndpointIds(now, limit) }
+
+    companion object {
+        /** A source quiet this long is surfaced as STALE (plan §9). */
+        val STALE_AFTER: java.time.Duration = java.time.Duration.ofHours(48)
+    }
 }

@@ -70,7 +70,7 @@ class EventsRepository(private val api: ApiClient) {
 
     suspend fun feed(cursor: String? = null): EventFeedResponse = api.events(cursor)
 
-    suspend fun detail(id: String): EventDto = api.event(id)
+    suspend fun detail(id: String): com.mezo.trace.core.network.EventDetailResponse = api.event(id)
 }
 
 class WatchesRepository(

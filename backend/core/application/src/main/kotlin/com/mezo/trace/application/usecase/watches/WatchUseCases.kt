@@ -33,6 +33,7 @@ class CreateWatch(
         val maxAgeHours: Int? = null,
         val minSignificance: String? = null,
         val minConfidence: String? = null,
+        val notificationMode: String = "IMMEDIATE",
     )
 
     fun execute(
@@ -74,6 +75,7 @@ class CreateWatch(
                 maxAgeHours = rules.maxAgeHours,
                 minSignificance = rules.minSignificance?.uppercase(),
                 minConfidence = rules.minConfidence?.uppercase(),
+                notificationMode = com.mezo.trace.domain.NotificationMode.valueOf(rules.notificationMode.uppercase()),
                 status = com.mezo.trace.domain.WatchStatus.ACTIVE,
                 version = 1,
                 createdAt = now,
@@ -142,6 +144,11 @@ class CreateWatch(
         rules.minConfidence?.uppercase()?.let {
             if (it !in setOf("VERY_LOW", "LOW", "MEDIUM", "HIGH", "VERY_HIGH")) {
                 throw ValidationException("min_confidence", "invalid confidence band")
+            }
+        }
+        rules.notificationMode.uppercase().let {
+            if (it !in setOf("IMMEDIATE", "DIGEST", "NEVER")) {
+                throw ValidationException("notification_mode", "must be IMMEDIATE, DIGEST or NEVER")
             }
         }
     }
@@ -219,6 +226,7 @@ class UpdateWatch(
         val endpointIds: Set<String>? = null,
         val eventTypes: Set<String>? = null,
         val rules: CreateWatch.Rules? = null,
+        val notificationMode: String? = null,
     )
 
     fun execute(actor: UserId, watchId: String, patch: Patch): Watch {
@@ -263,7 +271,7 @@ class UpdateWatch(
                 } }
                 ?: watch.status
 
-            val rules = patch.rules ?: CreateWatch.Rules(
+            val effectiveRules = patch.rules ?: CreateWatch.Rules(
                 entityIds = watch.entityIds,
                 keywordsInclude = watch.keywordsInclude,
                 keywordsExclude = watch.keywordsExclude,
@@ -271,7 +279,9 @@ class UpdateWatch(
                 maxAgeHours = watch.maxAgeHours,
                 minSignificance = watch.minSignificance,
                 minConfidence = watch.minConfidence,
+                notificationMode = patch.notificationMode ?: watch.notificationMode.name,
             )
+            val rules = effectiveRules
             CreateWatch.validateRules(rules)
 
             val updated = watch.copy(
@@ -285,6 +295,7 @@ class UpdateWatch(
                 maxAgeHours = rules.maxAgeHours,
                 minSignificance = rules.minSignificance?.uppercase(),
                 minConfidence = rules.minConfidence?.uppercase(),
+                notificationMode = com.mezo.trace.domain.NotificationMode.valueOf(rules.notificationMode.uppercase()),
                 status = newStatus,
                 version = watch.version + 1,
                 updatedAt = java.time.Instant.now(),

@@ -62,6 +62,7 @@ private object NoopEvents : com.mezo.trace.application.port.EventRepository {
     override fun findByExternalRef(provider: String, externalId: String): com.mezo.trace.domain.Event? = null
     override fun insert(event: com.mezo.trace.domain.Event): Boolean = true
     override fun linkEvidence(eventId: String, evidenceId: String, role: String) {}
+    override fun evidenceForEvent(eventId: String): List<com.mezo.trace.application.port.EventEvidenceView> = emptyList()
     override fun updateStatus(eventId: String, status: com.mezo.trace.domain.EventStatus) {}
     override fun markEvidenceRole(evidenceId: String, eventId: String, role: String) {}
     override fun countDistinctSupportingEndpoints(eventId: String): Int = 1

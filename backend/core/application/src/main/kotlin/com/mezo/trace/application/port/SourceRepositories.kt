@@ -48,4 +48,11 @@ interface SourceHealthRepository {
 
     /** Stores the computed polling interval and failure streak (ADR-009). */
     fun applyInterval(endpointId: String, interval: java.time.Duration, consecutiveFailures: Int, at: Instant)
+
+    /**
+     * HEALTHY endpoints whose last success predates [olderThan] become STALE
+     * (plan §9): monitoring never stops silently, and the next successful
+     * fetch restores HEALTHY.
+     */
+    fun markStaleIfOverdue(olderThan: Instant, now: Instant): Int
 }

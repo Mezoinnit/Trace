@@ -100,7 +100,9 @@ class ApiClient(
             },
         )
 
-    suspend fun event(id: String): EventDto = authedGet("/api/v1/events/$id")
+    suspend fun event(id: String): EventDetailResponse = authedGet("/api/v1/events/$id")
+
+    suspend fun entity(id: String): EntityDetailResponse = authedGet("/api/v1/entities/$id")
 
     // ---- Watches ----
 
