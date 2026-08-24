@@ -32,6 +32,10 @@ class TraceApp : Application() {
     val watches: WatchesRepository by lazy { WatchesRepository(api, sessionStore) }
     val alerts: AlertsRepository by lazy { AlertsRepository(api, sessionStore) }
 
+    /** Entity timeline fetch (plan §12 surfaces). */
+    suspend fun entityRepoFetch(id: String): com.mezo.trace.core.network.EntityDetailResponse =
+        api.entity(id)
+
     override fun onCreate() {
         super.onCreate()
         sessionStore = SessionStore(this)

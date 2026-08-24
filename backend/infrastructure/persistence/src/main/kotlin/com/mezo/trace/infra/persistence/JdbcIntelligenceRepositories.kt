@@ -73,6 +73,38 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
         }
     }
 
+    override fun evidenceForEvent(eventId: String): List<com.mezo.trace.application.port.EventEvidenceView> {
+        val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return emptyList()
+        return sql.current().prepareStatement(
+            """
+            SELECT ev.id AS evidence_id, ev.title, ev.canonical_url, ee.role,
+                   ev.published_at, s.display_name AS source_name, s.trust_classification
+            FROM event_evidence ee
+            JOIN evidence ev ON ev.id = ee.evidence_id
+            JOIN sources s ON s.id = ev.source_id
+            WHERE ee.event_id = ?
+            ORDER BY ee.created_at
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<com.mezo.trace.application.port.EventEvidenceView>()
+                while (rs.next()) {
+                    out += com.mezo.trace.application.port.EventEvidenceView(
+                        evidenceId = rs.getObject("evidence_id", UUID::class.java).toString(),
+                        title = rs.getString("title"),
+                        canonicalUrl = rs.getString("canonical_url"),
+                        role = rs.getString("role"),
+                        sourceName = rs.getString("source_name"),
+                        sourceTrust = rs.getString("trust_classification"),
+                        publishedAt = rs.getObject("published_at")?.let { rs.instant("published_at") },
+                    )
+                }
+                out
+            }
+        }
+    }
+
     override fun updateStatus(eventId: String, status: com.mezo.trace.domain.EventStatus) {
         val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return
         sql.current().prepareStatement(
@@ -248,9 +280,9 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
             INSERT INTO watches (id, workspace_id, created_by, name, endpoint_ids, event_types,
                                  entity_ids, keywords_include, keywords_exclude, semantic,
                                  max_age_hours, min_significance, min_confidence,
-                                 status, version, created_at, updated_at)
+                                 notification_mode, status, version, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?,
-                    ?, ?, ?, ?, ?, ?, ?)
+                    ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
         ).use { ps ->
             ps.setObject(1, UUID.fromString(watch.id))
@@ -267,10 +299,11 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
             if (maxAgeInsert != null) ps.setInt(11, maxAgeInsert) else ps.setNull(11, java.sql.Types.INTEGER)
             ps.setNullableString(12, watch.minSignificance)
             ps.setNullableString(13, watch.minConfidence)
-            ps.setString(14, watch.status.name)
-            ps.setInt(15, watch.version)
-            ps.setInstant(16, watch.createdAt)
-            ps.setInstant(17, watch.updatedAt)
+            ps.setString(14, watch.notificationMode.name)
+            ps.setString(15, watch.status.name)
+            ps.setInt(16, watch.version)
+            ps.setInstant(17, watch.createdAt)
+            ps.setInstant(18, watch.updatedAt)
             ps.executeUpdate()
         }
     }
@@ -329,7 +362,7 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
                                entity_ids = ?::jsonb, keywords_include = ?::jsonb,
                                keywords_exclude = ?::jsonb, semantic = ?,
                                max_age_hours = ?, min_significance = ?, min_confidence = ?,
-                               status = ?, version = ?, updated_at = ?
+                               notification_mode = ?, status = ?, version = ?, updated_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { ps ->
@@ -344,10 +377,11 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
             if (maxAgeUpdate != null) ps.setInt(8, maxAgeUpdate) else ps.setNull(8, java.sql.Types.INTEGER)
             ps.setNullableString(9, watch.minSignificance)
             ps.setNullableString(10, watch.minConfidence)
-            ps.setString(11, watch.status.name)
-            ps.setInt(12, watch.version)
-            ps.setInstant(13, watch.updatedAt)
-            ps.setObject(14, UUID.fromString(watch.id))
+            ps.setString(11, watch.notificationMode.name)
+            ps.setString(12, watch.status.name)
+            ps.setInt(13, watch.version)
+            ps.setInstant(14, watch.updatedAt)
+            ps.setObject(15, UUID.fromString(watch.id))
             ps.executeUpdate()
         }
     }
@@ -366,6 +400,7 @@ class JdbcWatchRepository(private val sql: SqlConnections) : WatchRepository {
         maxAgeHours = getInt("max_age_hours").let { if (wasNull()) null else it },
         minSignificance = getString("min_significance"),
         minConfidence = getString("min_confidence"),
+        notificationMode = com.mezo.trace.domain.NotificationMode.valueOf(getString("notification_mode")),
         status = com.mezo.trace.domain.WatchStatus.valueOf(getString("status")),
         version = getInt("version"),
         createdAt = instant("created_at"),

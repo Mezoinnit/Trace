@@ -217,6 +217,7 @@ data class WatchCreateRequest(
     @SerialName("max_age_hours") val maxAgeHours: Int? = null,
     @SerialName("min_significance") val minSignificance: String? = null,
     @SerialName("min_confidence") val minConfidence: String? = null,
+    @SerialName("notification_mode") val notificationMode: String? = null,
 )
 
 @Serializable
@@ -233,6 +234,7 @@ data class WatchDto(
     @SerialName("max_age_hours") val maxAgeHours: Int?,
     @SerialName("min_significance") val minSignificance: String?,
     @SerialName("min_confidence") val minConfidence: String?,
+    @SerialName("notification_mode") val notificationMode: String,
     val status: String,
     /** Optimistic-lock token; echo it in PATCH (plan §24). */
     val version: Int,
@@ -284,6 +286,7 @@ data class WatchUpdateRequest(
     @SerialName("max_age_hours") val maxAgeHours: Int? = null,
     @SerialName("min_significance") val minSignificance: String? = null,
     @SerialName("min_confidence") val minConfidence: String? = null,
+    @SerialName("notification_mode") val notificationMode: String? = null,
 )
 
 // ---- AI watch interpretation (Phase 10) ----
@@ -300,4 +303,31 @@ data class WatchIntentProposalDto(
     @SerialName("keywords_exclude") val keywordsExclude: List<String>,
     @SerialName("min_significance") val minSignificance: String?,
     val uncertainties: List<String>,
+)
+
+// ---- Event detail enrichment (plan §3.5, Phase 9 exit criteria) ----
+
+@Serializable
+data class EventEvidenceDto(
+    val id: String,
+    val title: String?,
+    @SerialName("canonical_url") val canonicalUrl: String?,
+    val role: String,
+    @SerialName("source_name") val sourceName: String?,
+    @SerialName("source_trust") val sourceTrust: String,
+    @SerialName("published_at") val publishedAt: String?,
+)
+
+@Serializable
+data class EntityChipDto(
+    val id: String,
+    val name: String,
+    val type: String,
+)
+
+@Serializable
+data class EventDetailResponse(
+    val event: EventDto,
+    val evidence: List<EventEvidenceDto>,
+    val entities: List<EntityChipDto>,
 )

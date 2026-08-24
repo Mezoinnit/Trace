@@ -305,6 +305,19 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
         }
     }
 
+    override fun markStaleIfOverdue(olderThan: Instant, now: Instant): Int =
+        sql.current().prepareStatement(
+            """
+            UPDATE source_health SET state = 'STALE', updated_at = now()
+            WHERE state = 'HEALTHY'
+              AND last_success_at IS NOT NULL
+              AND last_success_at < ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setInstant(1, olderThan)
+            ps.executeUpdate()
+        }
+
     override fun storeEtag(endpointId: String, etag: String?) {
         sql.current().prepareStatement(
             "UPDATE source_health SET last_etag = ?, updated_at = now() WHERE endpoint_id = ?",

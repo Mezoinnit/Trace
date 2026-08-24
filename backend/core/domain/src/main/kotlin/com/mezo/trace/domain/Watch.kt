@@ -30,6 +30,8 @@ data class Watch(
     val minSignificance: String? = null,
     /** Minimum confidence band to alert; null = any. */
     val minConfidence: String? = null,
+    /** §4.14 notification policy. DIGEST is reserved for the FCM phase. */
+    val notificationMode: NotificationMode = NotificationMode.IMMEDIATE,
     val status: WatchStatus,
     val version: Int,
     val createdAt: Instant,
@@ -37,3 +39,5 @@ data class Watch(
 )
 
 enum class WatchStatus { ACTIVE, PAUSED, DELETED }
+
+enum class NotificationMode { IMMEDIATE, DIGEST, NEVER }

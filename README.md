@@ -147,6 +147,13 @@ Current status:
   threshold, input limits, defensive output validation, and ai_operations
   reproducibility records. Paid providers remain config-pluggable only.
   Android "Fill from description" wires interpretation into watch creation.
+- **Phase 10 audit remediation:** event detail now exposes supporting
+  evidence with source attribution plus linked entities (§3.5); Android shows
+  evidence/sources sections and an entity timeline screen; watches gained a
+  validated `notification_mode` (§4.14); quiet sources transition to STALE in
+  the scheduler pass and recover on success.
+  Parked by design: Room offline cache (§31), DIGEST scheduling, per-endpoint
+  min/max interval overrides.
 - Phases 11+ — see the plan (search + investigations next).
 
 ## Non-goals for V1

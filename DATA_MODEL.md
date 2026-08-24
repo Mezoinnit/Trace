@@ -149,6 +149,10 @@ V1 targets public sources without credentials wherever possible.
 
 ### source_health
 
+**Implemented in `V3__sources.sql` (Phase 2).** `STALE` is assigned by the
+scheduler when a previously-healthy source's last success exceeds 48h;
+recovery to HEALTHY happens on the next successful fetch.
+
 | column | type | notes |
 |--------|------|-------|
 | endpoint_id | uuid PK REFERENCES source_endpoints(id) | |
@@ -317,7 +321,8 @@ Persistent monitoring intent. User-specific. **Implemented in `V5__events_watche
 | definition | jsonb NOT NULL | structured rules, validated |
 | status | text NOT NULL DEFAULT 'ACTIVE' | `ACTIVE`/`PAUSED`/`DELETED` |
 | notification_policy | jsonb NOT NULL | per Watch notification rules |
-| version | int NOT NULL DEFAULT 1 | |
+| version | int NOT NULL DEFAULT 1 | optimistic locking |
+| notification_mode | text NOT NULL DEFAULT 'IMMEDIATE' CHECK IN ('IMMEDIATE','DIGEST','NEVER') | §4.14; DIGEST reserved for FCM phase |
 | created_at | timestamptz NOT NULL | |
 | updated_at | timestamptz NOT NULL | |
 

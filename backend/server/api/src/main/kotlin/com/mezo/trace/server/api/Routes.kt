@@ -283,9 +283,33 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
 
         get("/events/{id}") {
             call.requireUserId(c.tokenIssuer)
-            val event = c.txRunner.run { c.eventRepo.findById(call.parameters["id"].orEmpty()) }
-                ?: throw AppError.NotFound("event")
-            call.respond(HttpStatusCode.OK, eventDto(event))
+            val detail = c.txRunner.run {
+                val event = c.eventRepo.findById(call.parameters["id"].orEmpty())
+                    ?: throw AppError.NotFound("event")
+                val evidence = c.eventRepo.evidenceForEvent(event.id)
+                val entities = c.entityRepo.listEventEntities(event.id)
+                Triple(event, evidence, entities)
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                EventDetailResponse(
+                    event = eventDto(detail.first),
+                    evidence = detail.second.map { view ->
+                        EventEvidenceDto(
+                            id = view.evidenceId,
+                            title = view.title,
+                            canonicalUrl = view.canonicalUrl,
+                            role = view.role,
+                            sourceName = view.sourceName,
+                            sourceTrust = view.sourceTrust,
+                            publishedAt = view.publishedAt?.toString(),
+                        )
+                    },
+                    entities = detail.third.map { entity ->
+                        EntityChipDto(entity.id, entity.canonicalName, entity.type.name)
+                    },
+                ),
+            )
         }
 
         // ---- Watches (tenant-owned monitoring rules, Phase 4) ----
@@ -326,6 +350,7 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
                     maxAgeHours = request.maxAgeHours,
                     minSignificance = request.minSignificance,
                     minConfidence = request.minConfidence,
+                    notificationMode = request.notificationMode ?: "IMMEDIATE",
                 ),
             )
             call.respond(HttpStatusCode.Created, watchDto(watch))
@@ -363,6 +388,7 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
                     status = body.status,
                     endpointIds = body.endpointIds?.toSet(),
                     eventTypes = body.eventTypes?.toSet(),
+                    notificationMode = body.notificationMode,
                     rules = body.let {
                         if (it.entityIds != null || it.keywordsInclude != null ||
                             it.keywordsExclude != null || it.semantic != null ||
@@ -377,6 +403,7 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
                                 maxAgeHours = it.maxAgeHours,
                                 minSignificance = it.minSignificance,
                                 minConfidence = it.minConfidence,
+                                notificationMode = it.notificationMode ?: "IMMEDIATE",
                             )
                         } else {
                             null
@@ -475,6 +502,7 @@ private fun watchDto(watch: com.mezo.trace.domain.Watch) = WatchDto(
     maxAgeHours = watch.maxAgeHours,
     minSignificance = watch.minSignificance,
     minConfidence = watch.minConfidence,
+    notificationMode = watch.notificationMode.name,
     status = watch.status.name,
     version = watch.version,
     createdAt = watch.createdAt.toString(),

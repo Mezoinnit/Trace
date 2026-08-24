@@ -186,3 +186,32 @@ data class WatchIntentProposalDto(
     @SerialName("min_significance") val minSignificance: String?,
     val uncertainties: List<String> = emptyList(),
 )
+
+// ---- Event detail enrichment (§3.5) ----
+
+@Serializable
+data class EventEvidenceDto(
+    val id: String,
+    val title: String? = null,
+    @SerialName("canonical_url") val canonicalUrl: String? = null,
+    val role: String = "SUPPORTING",
+    @SerialName("source_name") val sourceName: String? = null,
+    @SerialName("source_trust") val sourceTrust: String? = null,
+    @SerialName("published_at") val publishedAt: String? = null,
+)
+
+@Serializable
+data class EntityChipDto(val id: String, val name: String, val type: String)
+
+@Serializable
+data class EventDetailResponse(
+    val event: EventDto,
+    val evidence: List<EventEvidenceDto> = emptyList(),
+    val entities: List<EntityChipDto> = emptyList(),
+)
+
+@Serializable
+data class EntityDetailResponse(
+    val entity: EntityChipDto,
+    @SerialName("recent_events") val recentEvents: List<EventDto> = emptyList(),
+)

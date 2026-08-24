@@ -110,17 +110,38 @@ class MainActivity : ComponentActivity() {
                 startDestination = "home",
                 modifier = Modifier.padding(padding),
             ) {
-                composable("home") { HomeRoute(app) { id -> navController.navigate("event/$id") } }
+                composable("home") {
+                    HomeRoute(app) { id -> navController.navigate("event/$id") }
+                }
                 composable("sources") { SourcesRoute(app) }
                 composable("watches") { WatchesRoute(app) }
-                composable("alerts") { AlertsRoute(app) { id -> navController.navigate("event/$id") } }
+                composable("alerts") {
+                    AlertsRoute(app) { id -> navController.navigate("event/$id") }
+                }
                 composable("event/{id}") { entry ->
                     val id = entry.arguments?.getString("id")
-                    var detail by remember { mutableStateOf<com.mezo.trace.core.network.EventDto?>(null) }
+                    var detail by remember {
+                        mutableStateOf<com.mezo.trace.core.network.EventDetailResponse?>(null)
+                    }
                     LaunchedEffect(id) {
                         detail = runCatching { app.events.detail(id!!) }.getOrNull()
                     }
-                    EventDetailScreen(detail)
+                    EventDetailScreen(detail) { entityId ->
+                        navController.navigate("entity/$entityId")
+                    }
+                }
+                composable("entity/{id}") { entry ->
+                    val id = entry.arguments?.getString("id")
+                    var detail by remember {
+                        mutableStateOf<com.mezo.trace.core.network.EntityDetailResponse?>(null)
+                    }
+                    LaunchedEffect(id) {
+                        detail = runCatching { app.entityRepoFetch(id!!) }.getOrNull()
+                    }
+                    com.mezo.trace.feature.entities.EntityDetailScreen(
+                        name = detail?.entity?.name,
+                        events = detail?.recentEvents.orEmpty(),
+                    ) { eventId -> navController.navigate("event/$eventId") }
                 }
             }
         }
@@ -326,7 +347,7 @@ class MainActivity : ComponentActivity() {
                 val titles = mutableMapOf<String, String>()
                 for (alert in alerts) {
                     try {
-                        titles[alert.eventId] = app.events.detail(alert.eventId).title
+                        titles[alert.eventId] = app.events.detail(alert.eventId).event.title
                     } catch (_: Exception) {
                         // Detail fetch is best-effort for the list view.
                     }
