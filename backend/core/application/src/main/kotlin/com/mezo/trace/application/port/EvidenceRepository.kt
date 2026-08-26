@@ -19,5 +19,17 @@ interface EvidenceRepository {
     /** Finds a prior version by content hash (change detection). */
     fun hasVersionWithHash(evidenceId: String, contentHash: String): Boolean
 
+    fun findById(evidenceId: String): com.mezo.trace.domain.Evidence?
+
+    /** Full version history, oldest first. */
+    fun versionsFor(evidenceId: String): List<com.mezo.trace.domain.EvidenceVersion>
+
+    /**
+     * Moves the mutable display fields to the latest content after a version
+     * was appended — the prior value is already preserved in versions
+     * (ADR-006 immutability applies to history, not to the current view).
+     */
+    fun updateContent(evidenceId: String, content: String?, contentHash: String)
+
     fun appendVersion(version: EvidenceVersion)
 }

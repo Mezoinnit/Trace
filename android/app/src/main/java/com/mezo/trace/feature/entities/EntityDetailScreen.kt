@@ -3,6 +3,7 @@ package com.mezo.trace.feature.entities
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,17 +36,21 @@ fun EntityDetailScreen(
         if (events.isEmpty()) {
             EmptyState("No recorded events yet.")
         } else {
+            val grouped = events.groupBy { (it.occurredAt ?: it.discoveredAt).take(10) }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(events, key = { it.id }) { event ->
-                    Card(Modifier.fillMaxWidth().clickable { onOpenEvent(event.id) }) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(event.title, style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                event.occurredAt ?: event.discoveredAt,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                            Badge(event.type)
+                grouped.forEach { (day, dayEvents) ->
+                    item(key = "day-$day") {
+                        Text(day, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                    items(dayEvents, key = { it.id }) { event ->
+                        Card(Modifier.fillMaxWidth().clickable { onOpenEvent(event.id) }) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(event.title, style = MaterialTheme.typography.titleSmall)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Badge(event.type)
+                                    Badge("CONF ${event.confidence}")
+                                }
+                            }
                         }
                     }
                 }

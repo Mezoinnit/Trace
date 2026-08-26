@@ -102,6 +102,8 @@ class IngestEvidence(
                             ),
                         )
                         versioned++
+                        // Current view moves to latest; old value lives in v{n-1}.
+                        evidenceRepository.updateContent(existing.id, item.contentPreview, contentHash)
                         touched += EvidenceTouch(existing.id, false, item)
                     }
                 }

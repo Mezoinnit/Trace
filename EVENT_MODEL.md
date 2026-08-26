@@ -155,6 +155,7 @@ Historical intelligence is never silently mutated:
 
 ## 10. Timeline position
 
-Events are ordered by `occurred_at` for timelines. Related events are linked
-via shared entities and relationships (entities layer) and, later, explicit
-event relationships (Phase 19).
+Events are ordered by `occurred_at` for timelines. **Implemented (Phase 12):**
+related events are derived from shared entity links
+(`GET /api/v1/events/{id}/related`), and the audit ledger exposes status and
+confidence transitions per event (`GET /api/v1/events/{id}/history`).

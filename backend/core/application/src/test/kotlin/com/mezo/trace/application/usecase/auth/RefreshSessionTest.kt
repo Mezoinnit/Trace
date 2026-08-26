@@ -90,6 +90,10 @@ class RecordingAudit : AuditLogRepository {
     override fun append(entry: com.mezo.trace.application.model.AuditEntry) {
         actions += entry.action
     }
+    override fun listForResource(
+        resourceType: String,
+        resourceId: String,
+    ): List<com.mezo.trace.application.port.EventHistoryEntry> = emptyList()
 }
 
 private class InlineTx : TxRunner {

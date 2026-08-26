@@ -101,6 +101,7 @@ class AuditRemediation2ITest {
             )
         }
         assertEquals(io.ktor.http.HttpStatusCode.Created, created.status)
+        println("CREATED_BODY=" + created.bodyAsText().take(400))
         assertTrue(created.bodyAsText().contains("\"notification_mode\":\"NEVER\""))
 
         // Invalid mode is rejected server-side.

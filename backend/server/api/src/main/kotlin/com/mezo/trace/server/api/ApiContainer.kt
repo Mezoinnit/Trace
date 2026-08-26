@@ -123,6 +123,8 @@ class ApiContainer(
     val watchRepo = JdbcWatchRepository(sql)
     val alertRepo = JdbcAlertRepository(sql)
     val entityRepo = JdbcEntityRepository(sql)
+    val evidenceRepo = JdbcEvidenceRepository(sql)
+    val auditRepo = com.mezo.trace.infra.persistence.JdbcAuditLogRepository(sql)
 
     val ingestEvidence = com.mezo.trace.application.usecase.evidence.IngestEvidence(
         JdbcEvidenceRepository(sql),
@@ -131,7 +133,7 @@ class ApiContainer(
     val eventClusterer = com.mezo.trace.application.usecase.intelligence.EventClusterer(eventRepo, txRunner)
     val resolveEntity = com.mezo.trace.application.usecase.entities.ResolveEntity(entityRepo, txRunner)
     val mergeEntities = MergeEntities(entityRepo, auditLog, txRunner)
-    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, txRunner)
+    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, auditLog, txRunner)
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
     // AI layer (Phase 10, ADR-007): deterministic LocalProvider by default.
     val aiGateway: com.mezo.trace.application.port.AiGateway =

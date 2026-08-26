@@ -409,6 +409,7 @@ REFRESH_TOKEN_REUSE`.
 | created_at | timestamptz NOT NULL DEFAULT now() | |
 | INDEX (workspace_id, created_at DESC) | | |
 | INDEX (action, created_at DESC) | | |
+| History reads key on (resource_type, resource_id) — covered by workspace/action indexes; revisit if trails grow | | |
 
 ### ai_operations
 

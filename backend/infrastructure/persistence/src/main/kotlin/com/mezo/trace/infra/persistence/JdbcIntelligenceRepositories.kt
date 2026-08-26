@@ -105,6 +105,35 @@ class JdbcEventRepository(private val sql: SqlConnections) : EventRepository {
         }
     }
 
+    override fun relatedEvents(eventId: String, limit: Int): List<Event> {
+        val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return emptyList()
+        return sql.current().prepareStatement(
+            """
+            SELECT * FROM (
+                SELECT DISTINCT e.*
+                FROM events e
+                JOIN event_entities ee ON ee.event_id = e.id
+                WHERE ee.entity_id IN (
+                    SELECT entity_id FROM event_entities WHERE event_id = ?::uuid
+                )
+                  AND e.id <> ?::uuid
+                  AND e.merged_into_event_id IS NULL
+            ) rel
+            ORDER BY COALESCE(rel.occurred_at, rel.discovered_at) DESC
+            LIMIT ?
+            """.trimIndent(),
+        ).use { ps ->
+            ps.setString(1, eventId)
+            ps.setString(2, eventId)
+            ps.setInt(3, limit)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<Event>()
+                while (rs.next()) out += rs.toEvent()
+                out
+            }
+        }
+    }
+
     override fun updateStatus(eventId: String, status: com.mezo.trace.domain.EventStatus) {
         val uuid = runCatching { UUID.fromString(eventId) }.getOrNull() ?: return
         sql.current().prepareStatement(
