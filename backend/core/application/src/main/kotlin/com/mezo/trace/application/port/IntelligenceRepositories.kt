@@ -29,6 +29,16 @@ data class EventSearchFilters(
     val to: java.time.Instant? = null,
 )
 
+/**
+ * A status/confidence transition for an event, derived from the audit ledger
+ * (plan Phase 12: how confidence and status changed over time).
+ */
+data class EventHistoryEntry(
+    val at: java.time.Instant,
+    val action: String,
+    val detail: Map<String, String>,
+)
+
 /** One deterministic feed page (plan §28). */
 data class EventFeedPage(
     val events: List<Event>,
@@ -50,6 +60,12 @@ interface EventRepository {
 
     /** Supporting/contradicting evidence with source attribution. */
     fun evidenceForEvent(eventId: String): List<EventEvidenceView>
+
+    /**
+     * Related events: events sharing at least one linked entity with the
+     * given event, excluding itself; newest first (plan §3.5 related events).
+     */
+    fun relatedEvents(eventId: String, limit: Int): List<Event>
 
     fun updateStatus(eventId: String, status: EventStatus)
 

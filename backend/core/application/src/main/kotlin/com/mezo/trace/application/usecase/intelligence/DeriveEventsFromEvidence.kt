@@ -28,6 +28,7 @@ class DeriveEventsFromEvidence(
     private val clusterer: EventClusterer,
     private val resolveEntity: com.mezo.trace.application.usecase.entities.ResolveEntity,
     private val entities: com.mezo.trace.application.port.EntityRepository,
+    private val audit: com.mezo.trace.application.port.AuditLogRepository,
     private val tx: TxRunner,
 ) {
 
@@ -160,6 +161,23 @@ class DeriveEventsFromEvidence(
                 hasStableExternalId = true,
             ),
         )
+        if (scored.band != event.confidence) {
+            // Historical intelligence is never silently adjusted (Rule 5):
+            // band transitions are auditable timeline entries.
+            audit.append(
+                com.mezo.trace.application.model.AuditEntry(
+                    action = "CONFIDENCE_UPDATED",
+                    actorType = com.mezo.trace.application.model.ActorType.JOB,
+                    resourceType = "event",
+                    resourceId = eventId,
+                    metadata = mapOf(
+                        "band_from" to event.confidence,
+                        "band_to" to scored.band,
+                        "score" to scored.score.toString(),
+                    ),
+                ),
+            )
+        }
         events.updateConfidence(eventId, scored.band, scored.score, scored.reasoning)
     }
 

@@ -110,6 +110,17 @@ class ApiClient(
 
     suspend fun entity(id: String): EntityDetailResponse = authedGet("/api/v1/entities/$id")
 
+    suspend fun eventHistory(id: String): List<EventHistoryDto> =
+        authedGet("/api/v1/events/$id/history")
+
+    suspend fun relatedEvents(id: String): List<EventDto> =
+        authedGet<EventFeedResponse>("/api/v1/events/$id/related").items
+
+    suspend fun evidence(id: String): EvidenceDetailDto = authedGet("/api/v1/evidence/$id")
+
+    suspend fun timeline(entityId: String): TimelineResponse =
+        authedGet("/api/v1/entities/$entityId/timeline")
+
     // ---- Watches ----
 
     suspend fun watches(workspaceId: String): List<WatchDto> =

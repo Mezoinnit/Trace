@@ -125,12 +125,24 @@ class MainActivity : ComponentActivity() {
                     var detail by remember {
                         mutableStateOf<com.mezo.trace.core.network.EventDetailResponse?>(null)
                     }
+                    var history by remember {
+                        mutableStateOf<List<com.mezo.trace.core.network.EventHistoryDto>>(emptyList())
+                    }
+                    var related by remember {
+                        mutableStateOf<List<com.mezo.trace.core.network.EventDto>>(emptyList())
+                    }
                     LaunchedEffect(id) {
                         detail = runCatching { app.events.detail(id!!) }.getOrNull()
+                        history = runCatching { app.api.eventHistory(id!!) }.getOrDefault(emptyList())
+                        related = runCatching { app.api.relatedEvents(id!!) }.getOrDefault(emptyList())
                     }
-                    EventDetailScreen(detail) { entityId ->
-                        navController.navigate("entity/$entityId")
-                    }
+                    EventDetailScreen(
+                        detail = detail,
+                        onOpenEntity = { entityId -> navController.navigate("entity/$entityId") },
+                        history = history,
+                        related = related,
+                        onOpenEvent = { eventId -> navController.navigate("event/$eventId") },
+                    )
                 }
                 composable("entity/{id}") { entry ->
                     val id = entry.arguments?.getString("id")

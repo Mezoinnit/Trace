@@ -52,6 +52,51 @@ class JdbcEvidenceRepository(private val sql: SqlConnections) : EvidenceReposito
             ps.executeUpdate() > 0
         }
 
+    override fun findById(evidenceId: String): com.mezo.trace.domain.Evidence? {
+        val uuid = runCatching { java.util.UUID.fromString(evidenceId) }.getOrNull() ?: return null
+        sql.current().prepareStatement("SELECT * FROM evidence WHERE id = ?").use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs -> if (rs.next()) return rs.toEvidence() }
+        }
+        return null
+    }
+
+    override fun versionsFor(evidenceId: String): List<com.mezo.trace.domain.EvidenceVersion> {
+        val uuid = runCatching { java.util.UUID.fromString(evidenceId) }.getOrNull() ?: return emptyList()
+        sql.current().prepareStatement(
+            "SELECT * FROM evidence_versions WHERE evidence_id = ? ORDER BY version",
+        ).use { ps ->
+            ps.setObject(1, uuid)
+            ps.executeQuery().use { rs ->
+                val out = mutableListOf<com.mezo.trace.domain.EvidenceVersion>()
+                while (rs.next()) {
+                    out += com.mezo.trace.domain.EvidenceVersion(
+                        id = rs.getObject("id", java.util.UUID::class.java).toString(),
+                        evidenceId = rs.getObject("evidence_id", java.util.UUID::class.java).toString(),
+                        version = rs.getInt("version"),
+                        content = rs.getObject("content") as String?,
+                        contentHash = rs.getString("content_hash"),
+                        changedBy = rs.getString("changed_by"),
+                        createdAt = rs.instant("created_at"),
+                    )
+                }
+                return out
+            }
+        }
+    }
+
+    override fun updateContent(evidenceId: String, content: String?, contentHash: String) {
+        val uuid = runCatching { java.util.UUID.fromString(evidenceId) }.getOrNull() ?: return
+        sql.current().prepareStatement(
+            "UPDATE evidence SET content = ?, content_hash = ? WHERE id = ?",
+        ).use { ps ->
+            ps.setNullableString(1, content)
+            ps.setString(2, contentHash)
+            ps.setObject(3, uuid)
+            ps.executeUpdate()
+        }
+    }
+
     override fun latestVersion(evidenceId: String): Int {
         val uuid = runCatching { UUID.fromString(evidenceId) }.getOrNull() ?: return 0
         return sql.current().prepareStatement(

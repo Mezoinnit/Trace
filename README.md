@@ -160,7 +160,13 @@ Current status:
   relevance-ranked `/api/v1/search`; `/api/v1/investigations` interprets NL
   questions via the LocalProvider and returns structured intelligence;
   Android Ask tab wired end-to-end.
-- Phases 12+ — see the plan (historical intelligence next).
+- **Phase 12 — completed:** historical intelligence. Related events via
+  shared entity links; per-event status/confidence history from the audit
+  ledger (`CONFIDENCE_UPDATED` on every corroboration-driven band change);
+  evidence detail with full version history; entity timeline endpoint with
+  window filters; Android renders related/history sections and a day-grouped
+  entity timeline.
+- Phases 13+ — see the plan (generic web intelligence next).
 
 ## Non-goals for V1
 

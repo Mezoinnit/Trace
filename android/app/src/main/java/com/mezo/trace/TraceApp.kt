@@ -19,7 +19,7 @@ class TraceApp : Application() {
     lateinit var sessionStore: SessionStore
         private set
 
-    private val api: ApiClient by lazy {
+    val api: ApiClient by lazy {
         ApiClient(
             baseUrl = BuildConfig.BASE_URL,
             accessTokenProvider = { runBlocking { sessionStore.current()?.accessToken } },

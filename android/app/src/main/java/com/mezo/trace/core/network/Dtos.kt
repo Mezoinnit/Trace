@@ -228,3 +228,41 @@ data class InvestigationResponse(
     @SerialName("last_days") val lastDays: Int?,
     val events: List<EventDto>,
 )
+
+// ---- Historical intelligence (Phase 12) ----
+
+@Serializable
+data class EventHistoryDto(
+    val at: String,
+    val action: String,
+    val detail: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class EvidenceVersionDto(
+    val version: Int,
+    val content: String? = null,
+    @SerialName("content_hash") val contentHash: String,
+    @SerialName("changed_by") val changedBy: String,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class EvidenceDetailDto(
+    val id: String,
+    @SerialName("endpoint_id") val endpointId: String,
+    @SerialName("external_id") val externalId: String,
+    @SerialName("canonical_url") val canonicalUrl: String? = null,
+    val title: String? = null,
+    @SerialName("published_at") val publishedAt: String? = null,
+    @SerialName("discovered_at") val discoveredAt: String,
+    val content: String? = null,
+    @SerialName("content_hash") val contentHash: String,
+    val versions: List<EvidenceVersionDto> = emptyList(),
+)
+
+@Serializable
+data class TimelineResponse(
+    @SerialName("entity_id") val entityId: String,
+    val events: List<EventDto> = emptyList(),
+)

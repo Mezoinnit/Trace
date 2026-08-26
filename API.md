@@ -355,6 +355,20 @@ Event detail (see EVENT_MODEL.md for semantics):
 | POST | `/api/v1/notifications/{id}/open` | mark opened |
 | GET | `/api/v1/alerts` | alerts for debugging; also queryable per Watch |
 
+### Historical intelligence
+
+**Implemented in Phase 12.**
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/events/{id}/related` | events sharing linked entities, newest first |
+| GET | `/api/v1/events/{id}/history` | status/confidence transitions from the audit ledger |
+| GET | `/api/v1/evidence/{id}` | evidence + full version history (oldest first) |
+| GET | `/api/v1/entities/{id}/timeline` | entity-scoped window query (`from`,`to`,`limit`) |
+
+Confidence band changes are audited as `CONFIDENCE_UPDATED` whenever
+corroboration moves a band — history is never silently rewritten.
+
 ### Search & Investigations
 
 **Implemented in Phase 11** (Postgres FTS + pg_trgm, ADR-013).

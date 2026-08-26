@@ -349,6 +349,86 @@ fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters) {
             )
         }
 
+        // ---- Historical intelligence (Phase 12) ----
+
+        get("/events/{id}/related") {
+            call.requireUserId(c.tokenIssuer)
+            val related = c.txRunner.run {
+                c.eventRepo.relatedEvents(call.parameters["id"].orEmpty(), limit = 20)
+            }
+            call.respond(HttpStatusCode.OK, EventFeedResponse(related.map(::eventDto), nextCursor = null))
+        }
+
+        get("/events/{id}/history") {
+            call.requireUserId(c.tokenIssuer)
+            val eventId = call.parameters["id"].orEmpty()
+            // Prove the event exists before returning its trail.
+            c.txRunner.run {
+                c.eventRepo.findById(eventId) ?: throw AppError.NotFound("event")
+            }
+            val history = c.txRunner.run {
+                c.auditRepo.listForResource("event", eventId)
+            }.map {
+                EventHistoryDto(at = it.at.toString(), action = it.action, detail = it.detail)
+            }
+            call.respond(HttpStatusCode.OK, ListResponse(history))
+        }
+
+        get("/evidence/{id}") {
+            call.requireUserId(c.tokenIssuer)
+            val result = c.txRunner.run {
+                val evidence = c.evidenceRepo.findById(call.parameters["id"].orEmpty())
+                    ?: throw AppError.NotFound("evidence")
+                evidence to c.evidenceRepo.versionsFor(evidence.id)
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                EvidenceDetailDto(
+                    id = result.first.id,
+                    endpointId = result.first.endpointId,
+                    externalId = result.first.externalId,
+                    canonicalUrl = result.first.canonicalUrl,
+                    title = result.first.title,
+                    publishedAt = result.first.publishedAt?.toString(),
+                    discoveredAt = result.first.discoveredAt.toString(),
+                    content = result.first.content,
+                    contentHash = result.first.contentHash,
+                    versions = result.second.map { v ->
+                        EvidenceVersionDto(
+                            version = v.version,
+                            content = v.content,
+                            contentHash = v.contentHash,
+                            changedBy = v.changedBy,
+                            createdAt = v.createdAt.toString(),
+                        )
+                    },
+                ),
+            )
+        }
+
+        get("/entities/{id}/timeline") {
+            call.requireUserId(c.tokenIssuer)
+            val entityId = call.parameters["id"].orEmpty()
+            fun parseInstant(raw: String?): java.time.Instant? =
+                raw?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() }
+            val from = parseInstant(call.request.queryParameters["from"])
+            val to = parseInstant(call.request.queryParameters["to"])
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 100).coerceIn(1, 365)
+            val events = c.txRunner.run {
+                // Timeline = entity-scoped window query; identity does the scoping.
+                c.eventRepo.searchEvents(
+                    query = "",
+                    filters = com.mezo.trace.application.port.EventSearchFilters(
+                        entityId = entityId,
+                        from = from,
+                        to = to,
+                    ),
+                    limit = limit,
+                )
+            }
+            call.respond(HttpStatusCode.OK, TimelineResponse(entityId, events.map(::eventDto)))
+        }
+
         post("/investigations") {
             call.requireUserId(c.tokenIssuer)
             val request = call.receive<InvestigationRequest>()

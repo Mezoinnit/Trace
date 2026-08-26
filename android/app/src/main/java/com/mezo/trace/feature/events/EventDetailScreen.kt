@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mezo.trace.core.network.EventDetailResponse
+import com.mezo.trace.core.network.EventDto
 import com.mezo.trace.ui.components.Badge
 
 /** Event detail (plan §3.5): what happened, sources, supporting evidence,
@@ -20,6 +21,9 @@ import com.mezo.trace.ui.components.Badge
 fun EventDetailScreen(
     detail: EventDetailResponse?,
     onOpenEntity: (String) -> Unit,
+    history: List<com.mezo.trace.core.network.EventHistoryDto> = emptyList(),
+    related: List<EventDto> = emptyList(),
+    onOpenEvent: (String) -> Unit = {},
 ) {
     val event = detail?.event ?: return
     Column(
@@ -80,6 +84,33 @@ fun EventDetailScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+
+        // RELATED EVENTS (plan §3.5).
+        if (related.isNotEmpty()) {
+            Text("RELATED EVENTS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            related.forEach { rel ->
+                Text(
+                    "• ${rel.title}",
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        // HISTORY (plan §12): status/confidence transitions over time.
+        if (history.isNotEmpty()) {
+            Text("HISTORY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            history.forEach { entry ->
+                Text(
+                    "${entry.at.take(19)} · ${entry.action}" +
+                        (entry.detail["band_from"]?.let { " ($it → ${entry.detail["band_to"]})" } ?: ""),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
     }
 }
