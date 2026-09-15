@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-private class MapFetcher(private val byUrl: Map<String, Pair<String?, String>>) : HttpFetcher {
+private class ResolveMapFetcher(private val byUrl: Map<String, Pair<String?, String>>) : HttpFetcher {
     override fun fetch(request: FetchRequest): FetchedResponse {
         val (contentType, body) = byUrl[request.url]
             ?: throw com.mezo.trace.application.port.FetchFailure(
@@ -24,7 +24,7 @@ private class MapFetcher(private val byUrl: Map<String, Pair<String?, String>>) 
 class ResolveSourceTest {
 
     private val resolver = ResolveSource(
-        MapFetcher(
+        ResolveMapFetcher(
             mapOf(
                 "https://blog.example.com/" to (null to """
                     <html><head>
@@ -34,7 +34,27 @@ class ResolveSourceTest {
                 """.trimIndent()),
                 "https://blog.example.com/feed.xml" to ("application/rss+xml" to "<rss version=\"2.0\"><channel/></rss>"),
                 "https://plain.example.com/" to (null to "<html><head></head><body>No feeds here</body></html>"),
+                "https://sitemap-site.example.com/" to (null to "<html><head><title>Has Sitemap</title></head><body>x</body></html>"),
+                "https://sitemap-site.example.com/sitemap.xml" to
+                    ("application/xml" to "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>"),
                 "https://direct.example.com/feed" to ("application/atom+xml" to "<?xml version=\"1.0\"?><feed xmlns=\"http://www.w3.org/2005/Atom\"/>"),
+                "https://reordered.example.com/" to (null to """
+                    <html><head>
+                      <title>Reordered Attributes</title>
+                      <link href="https://reordered.example.com/rss.xml" type="application/rss+xml" rel="alternate"/>
+                    </head><body>content</body></html>
+                """.trimIndent()),
+                "https://based.example.com/" to (null to """
+                    <html><head>
+                      <base href="https://cdn.example.com/podcast/"/>
+                      <link type="application/atom+xml" href="feed.xml" rel="alternate"/>
+                    </head><body>content</body></html>
+                """.trimIndent()),
+                "https://ambiguous.example.com/" to (null to """
+                    <html><head>
+                      <link rel="alternate" type="application/xml" href="/sitemap.xml"/>
+                    </head><body>content</body></html>
+                """.trimIndent()),
             ),
         ),
     )
@@ -82,7 +102,37 @@ class ResolveSourceTest {
         val proposal = resolver.execute("https://plain.example.com/")
         assertEquals(Provider.WEB_PAGE, proposal.provider)
         assertEquals("web_page", proposal.adapterId)
-        assertTrue(proposal.notes.single().contains("degraded source"))
+        assertTrue(proposal.notes.any { it.contains("degraded source") })
+        assertTrue(proposal.capabilities.any { it.name == "CONDITIONAL_POLL" })
+    }
+
+    @Test
+    fun `sitemap existence is noted on degraded page proposals`() {
+        val proposal = resolver.execute("https://sitemap-site.example.com/")
+        assertEquals(Provider.WEB_PAGE, proposal.provider)
+        assertTrue(proposal.notes.any { it.startsWith("sitemap_found:") })
+    }
+
+    @Test
+    fun `feed links are discovered regardless of attribute order`() {
+        val proposal = resolver.execute("https://reordered.example.com/")
+        assertEquals(Provider.RSS, proposal.provider)
+        assertEquals("https://reordered.example.com/rss.xml", proposal.endpointUri)
+        assertEquals("rss", proposal.adapterId)
+    }
+
+    @Test
+    fun `relative feed hrefs resolve against base href`() {
+        val proposal = resolver.execute("https://based.example.com/")
+        assertEquals(Provider.ATOM, proposal.provider)
+        assertEquals("https://cdn.example.com/podcast/feed.xml", proposal.endpointUri)
+    }
+
+    @Test
+    fun `ambiguous xml alternates are not treated as feeds`() {
+        val proposal = resolver.execute("https://ambiguous.example.com/")
+        assertEquals(Provider.WEB_PAGE, proposal.provider)
+        assertEquals("web_page", proposal.adapterId)
     }
 
     @Test

@@ -661,6 +661,9 @@ private fun healthDto(health: com.mezo.trace.domain.SourceHealth) = SourceHealth
     consecutiveFailures = health.consecutiveFailures,
     averageLatencyMs = health.averageLatencyMs,
     lastItemAt = health.lastItemAt?.toString(),
+    parserFailCount = health.parserFailCount,
+    lastParserError = health.lastParserError,
+    lastParserNote = health.lastParserNote,
 )
 
 private fun toSourceDetailDto(detail: com.mezo.trace.application.usecase.sources.GetSourceDetail.Detail) =

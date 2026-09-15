@@ -55,4 +55,16 @@ interface SourceHealthRepository {
      * fetch restores HEALTHY.
      */
     fun markStaleIfOverdue(olderThan: Instant, now: Instant): Int
+
+    /**
+     * Records extraction outcomes (Phase 13, plan §8 step 12).
+     *
+     * [notes] are the adapter's parser/discovery notes for this cycle. A failed
+     * outcome (no extractable content, robots refusal) sets PARSER_FAILED and
+     * retains the detail in `last_parser_error`. A non-failed outcome only
+     * records the notes and clears the previous parser error — successful
+     * fetches must never degrade, or silently rewrite, endpoint health
+     * (Rule 7: source health is always visible).
+     */
+    fun applyParserOutcome(endpointId: String, at: Instant, notes: List<String>, failed: Boolean)
 }

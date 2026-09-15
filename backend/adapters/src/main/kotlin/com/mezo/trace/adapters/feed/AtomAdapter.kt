@@ -50,7 +50,10 @@ class AtomAdapter(fetcher: HttpFetcher) : FeedAdapter(fetcher) {
             publishedAt = AdapterSupport.parseTimestamp(childText(entry, "published"))
                 ?: AdapterSupport.parseTimestamp(childText(entry, "updated")),
             contentPreview = preview(entry, "summary", "content"),
-            metadata = mapOf("format" to "atom"),
+            metadata = mapOf(
+                "format" to "atom",
+                "provider" to Provider.ATOM.name,
+            ),
         )
     }
 

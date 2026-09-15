@@ -72,12 +72,22 @@ scraping after explicit user confirmation or clear source-resolution UI.
 For arbitrary user URLs (see plan §8):
 
 1. Validate URL; enforce HTTPS unless HTTP is explicitly required and allowed.
-2. Check robots policy where applicable (implemented with generic-web
-   extraction in Phase 13; resolution probing currently fetches only pages a
-   user explicitly submits).
-3. Detect RSS → Atom → sitemaps → JSON-LD → structured metadata → canonical URL.
-4. Fall back to HTML extraction only when required, with strict resource limits.
-5. Record parser and source health. Never assume arbitrary HTML is stable.
+2. Honor robots.txt at fetch time for `web_page` (`TraceIntelligenceBot` /
+   `*`); resolution probing only fetches pages a user explicitly submits.
+   Robots politeness is never the SSRF control (ADR-011).
+3. Detect RSS → Atom → sitemaps (robots `Sitemap:` then well-known paths,
+   existence note only — never crawl) → JSON-LD → Open Graph / meta →
+   `<article>` markup → canonical URL. Feed `<link>` discovery is
+   attribute-order independent and resolves relative hrefs against
+   `<base href>` → canonical → page URL; only types a dedicated adapter can
+   ingest (`application/rss+xml`, `application/atom+xml`) are accepted.
+4. Fall back to controlled HTML extraction only when required, with strict
+   resource limits (1 MiB body, ≤50 articles/page, no JS execution).
+5. Record parser outcomes on `source_health`: `last_parser_note` captures the
+   extraction/discovery outcome (e.g. `json_ld_articles:3`, `not_modified`),
+   while failures increment `parser_fail_count`, set `last_parser_error` and
+   surface `PARSER_FAILED` for robots refusal / empty extract.
+   Never assume arbitrary HTML is stable.
 
 ## Adapters
 
@@ -86,7 +96,7 @@ For arbitrary user URLs (see plan §8):
 | `github` | `github://owner/repo/kind` (kind ∈ releases, tags) | `RELEASES`, `CONDITIONAL_POLL`, `PAGINATED`, `RATE_LIMITED_API` | **implemented (Phase 2; releases fetchable)** |
 | `rss` | feed URL itself | `FEED_ENTRIES`, `CONDITIONAL_POLL` | **implemented (Phase 2)** |
 | `atom` | feed URL itself | `FEED_ENTRIES`, `CONDITIONAL_POLL` | **implemented (Phase 2)** |
-| `web_page` | page URL | `HTML_EXTRACT` (degraded: health probing + discovery only until Phase 13) | **implemented as degraded fallback (Phase 2)** |
+| `web_page` | page URL | `HTML_EXTRACT`, `CONDITIONAL_POLL` | **implemented (Phase 13):** robots honor, JSON-LD / `<article>` / Open Graph extraction → `ARTICLE_PUBLISHED` |
 | `json_api` / `rest_api` | URL + endpoint type | provider-defined | future |
 | `sec` | `sec://company/{cik}/filings` | `FILINGS` | future |
 | `reddit` / `youtube` / `custom` | provider-specific | provider-defined | future |

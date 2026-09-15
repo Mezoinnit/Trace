@@ -303,7 +303,14 @@ global rows (idempotent). `201 Created` returns the source detail:
   "endpoints": [
     {
       "endpoint": { "id": "…", "endpoint_uri": "…", "adapter": "github", "status": "ACTIVE", … },
-      "health": { "state": "HEALTHY", "failure_count": 0, … }
+      "health": {
+        "state": "HEALTHY",
+        "failure_count": 0,
+        "parser_fail_count": 0,
+        "last_parser_error": null,
+        "last_parser_note": "json_ld_articles:3",
+        …
+      }
     }
   ]
 }
