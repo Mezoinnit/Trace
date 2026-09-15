@@ -101,8 +101,8 @@ registered/monitored by workspaces.
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
-| provider | text NOT NULL | e.g. `GITHUB`, `RSS`, `ATOM`, `JSON_API` |
-| source_type | text NOT NULL | e.g. `REPOSITORY`, `FEED` |
+| provider | text NOT NULL | e.g. `GITHUB`, `RSS`, `ATOM`, `WEB_PAGE`, `JSON_API` |
+| source_type | text NOT NULL | e.g. `REPOSITORY`, `FEED`, `PAGE` |
 | canonical_identity | text NOT NULL | stable, provider-scoped (ADR-005) |
 | display_name | text | |
 | trust_classification | text NOT NULL CHECK (… 'FIRST_PARTY','OFFICIAL','ESTABLISHED','COMMUNITY','UNKNOWN','UNTRUSTED') | |
@@ -152,6 +152,8 @@ V1 targets public sources without credentials wherever possible.
 **Implemented in `V3__sources.sql` (Phase 2).** `STALE` is assigned by the
 scheduler when a previously-healthy source's last success exceeds 48h;
 recovery to HEALTHY happens on the next successful fetch.
+Parser detail columns added in `V14__generic_web.sql` (Phase 13);
+`last_parser_note` added in `V15__parser_notes.sql` (Phase 13).
 
 | column | type | notes |
 |--------|------|-------|
@@ -169,6 +171,10 @@ recovery to HEALTHY happens on the next successful fetch.
 | minimum_interval | interval | |
 | maximum_interval | interval | |
 | rate_limit_state | jsonb | remaining/reset for rate-limited APIs |
+| last_etag | text | conditional poll validator |
+| parser_fail_count | bigint NOT NULL DEFAULT 0 | Phase 13 extraction failures |
+| last_parser_error | text | Phase 13 last parser/extraction detail (cleared on success) |
+| last_parser_note | text | Phase 13 last parser/discovery outcome, success included |
 
 ### evidence
 
@@ -222,7 +228,7 @@ upsert; the feed cursor is `(occurred_at DESC NULLS LAST, id DESC)`.
 | column | type | notes |
 |--------|------|-------|
 | id | uuid PK | |
-| type | text NOT NULL | e.g. `SOFTWARE_RELEASE`, `SECURITY_ADVISORY`, … |
+| type | text NOT NULL | e.g. `SOFTWARE_RELEASE`, `ARTICLE_PUBLISHED`, `SECURITY_ADVISORY`, … |
 | title | text NOT NULL | |
 | summary | text | |
 | occurred_at | timestamptz | |

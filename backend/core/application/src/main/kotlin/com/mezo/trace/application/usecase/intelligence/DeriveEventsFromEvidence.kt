@@ -38,10 +38,73 @@ class DeriveEventsFromEvidence(
             touched.mapNotNull { touch ->
                 when (endpoint.endpointType) {
                     ENDPOINT_RELEASES -> upsertReleaseEvent(endpoint, touch)
-                    else -> null // other endpoint types derive events in later phases
+                    ENDPOINT_PAGE, ENDPOINT_FEED -> upsertArticleEvent(endpoint, touch)
+                    else -> null
                 }
             }
         }
+    }
+
+    /** Articles become ARTICLE_PUBLISHED events, keyed by their stable
+     *  external id (canonical URL / guid) within this source. */
+    private fun upsertArticleEvent(
+        endpoint: SourceEndpoint,
+        touch: IngestEvidence.EvidenceTouch,
+    ): Event? {
+        val item = touch.item
+        // Stable identity: adapter provider + external_id (URL/guid). Fallback
+        // to the source's provider so missing metadata never collapses to
+        // UNKNOWN and collide across sites (Rule 4).
+        val provider = articleProvider(endpoint, item)
+
+        events.findByExternalRef(provider, item.externalId)?.let { existing ->
+            recomputeConfidence(existing.id, endpoint)
+            return existing
+        }
+
+        val now = java.time.Instant.now()
+        val trust = sourceTrust(endpoint.sourceId)
+        val created = Event(
+            id = UUID.randomUUID().toString(),
+            type = EVENT_TYPE_ARTICLE_PUBLISHED,
+            title = item.title ?: "Article ${item.externalId.take(12)}",
+            summary = item.contentPreview,
+            occurredAt = item.publishedAt,
+            discoveredAt = now,
+            confidence = CONFIDENCE_MEDIUM,
+            significance = SIGNIFICANCE_MEDIUM,
+            status = EventStatus.CONFIRMED,
+            externalRef = mapOf(
+                REF_PROVIDER to provider,
+                REF_EXTERNAL_ID to item.externalId,
+                REF_ENDPOINT_ID to endpoint.id,
+            ),
+            createdAt = now,
+            updatedAt = now,
+        )
+        if (!events.insert(created)) {
+            val raced = events.findByExternalRef(provider, item.externalId) ?: return null
+            events.linkEvidence(raced.id, touch.evidenceId)
+            return raced
+        }
+        events.linkEvidence(created.id, touch.evidenceId)
+
+        val scored = ConfidenceCalculator.calculate(
+            ConfidenceCalculator.Inputs(
+                sourceTrust = trust,
+                distinctSupportingEndpoints = 1,
+                firstPartyConfirmation = trust == TrustClassification.FIRST_PARTY ||
+                    trust == TrustClassification.OFFICIAL,
+                contradicted = false,
+                hasStableExternalId = true,
+            ),
+        )
+        events.updateConfidence(created.id, scored.band, scored.score, scored.reasoning)
+        return created.copy(
+            confidenceScore = scored.score,
+            confidenceReasoning = scored.reasoning,
+            confidence = scored.band,
+        )
     }
 
     private fun upsertReleaseEvent(
@@ -184,9 +247,22 @@ class DeriveEventsFromEvidence(
     private fun sourceTrust(sourceId: String): TrustClassification =
         sources.findById(sourceId)?.trust ?: TrustClassification.UNKNOWN
 
+    private fun articleProvider(endpoint: SourceEndpoint, item: NormalizedItem): String =
+        item.metadata["provider"]
+            ?: sources.findById(endpoint.sourceId)?.provider?.name
+            ?: when (endpoint.adapter) {
+                "rss" -> "RSS"
+                "atom" -> "ATOM"
+                "web_page" -> "WEB_PAGE"
+                else -> TrustClassification.UNKNOWN.name
+            }
+
     companion object {
         const val EVENT_TYPE_SOFTWARE_RELEASE = "SOFTWARE_RELEASE"
+        const val EVENT_TYPE_ARTICLE_PUBLISHED = "ARTICLE_PUBLISHED"
         const val ENDPOINT_RELEASES = "RELEASES"
+        const val ENDPOINT_PAGE = "PAGE"
+        const val ENDPOINT_FEED = "FEED"
         const val REF_PROVIDER = "provider"
         const val REF_EXTERNAL_ID = "external_id"
         const val REF_ENDPOINT_ID = "endpoint_id"

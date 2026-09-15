@@ -66,6 +66,7 @@ class FetchEndpointNow(
             // loop covers initial backfill deterministically.
             var items = mutableListOf<com.mezo.trace.application.port.NormalizedItem>()
             var lastEtag: String? = null
+            var notes = mutableListOf<String>()
             var cursor: String? = null
             for (page in 0 until MAX_BACKFILL_PAGES) {
                 val result = adapter.fetch(
@@ -75,6 +76,7 @@ class FetchEndpointNow(
                 )
                 items.addAll(result.items)
                 lastEtag = result.etag ?: lastEtag
+                notes.addAll(result.notes)
                 cursor = result.nextCursor
                 if (cursor == null || result.items.isEmpty()) break
             }
@@ -90,7 +92,7 @@ class FetchEndpointNow(
                 }
             }
             Outcome.Success(
-                com.mezo.trace.application.port.FetchResult(items, etag = lastEtag),
+                com.mezo.trace.application.port.FetchResult(items, etag = lastEtag, notes = notes),
                 elapsedMs(startedAt),
                 evidenceCreated,
                 eventsDerived,
@@ -126,6 +128,18 @@ class FetchEndpointNow(
                         outcome.result.items.size,
                     )
                     health.storeEtag(endpoint.id, outcome.result.etag)
+
+                    // Parser visibility (Phase 13, plan §8 step 12): adapter
+                    // notes drive the outcome. Empty PAGE+304 (`not_modified`)
+                    // must not falsely degrade — notes are authoritative, and
+                    // they are recorded either way so operators can see *how*
+                    // items were extracted (Rule 7).
+                    health.applyParserOutcome(
+                        endpoint.id,
+                        clock.now(),
+                        outcome.result.notes,
+                        failed = outcome.result.notes.any { it in PARSER_FAILURE_NOTES },
+                    )
                 }
 
                 is Outcome.Failed -> {
@@ -167,6 +181,13 @@ class FetchEndpointNow(
     companion object {
         /** Page 1 + up to this many cursor follow-ups per cycle (Rule 6). */
         const val MAX_BACKFILL_PAGES = 3
+
+        /** Adapter notes that count as parser failures (plan §8 step 12). */
+        private val PARSER_FAILURE_NOTES = setOf(
+            "robots_disallowed",
+            "no_extractable_article_content",
+            "robots_unparseable_url",
+        )
     }
 
     private fun elapsedMs(startedAtNanos: Long): Long =

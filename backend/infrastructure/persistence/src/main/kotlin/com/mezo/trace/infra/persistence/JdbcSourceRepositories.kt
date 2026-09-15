@@ -226,6 +226,9 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
                     currentIntervalMinutes = rs.getObject("current_interval")
                         ?.let { pgIntervalToMinutes(it) },
                     nextPollAt = rs.getObject("next_poll_at")?.let { rs.instant("next_poll_at") },
+                    parserFailCount = rs.getLong("parser_fail_count"),
+                    lastParserError = rs.getString("last_parser_error"),
+                    lastParserNote = rs.getString("last_parser_note"),
                 )
             }
         }
@@ -318,6 +321,40 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
             ps.executeUpdate()
         }
 
+    override fun applyParserOutcome(
+        endpointId: String,
+        at: Instant,
+        notes: List<String>,
+        failed: Boolean,
+    ) {
+        // Bounded detail (Rule 6) — notes are untrusted adapter output.
+        val detail = notes.joinToString(",").take(MAX_PARSER_NOTE_LENGTH).ifEmpty { null }
+        sql.current().prepareStatement(
+            """
+            UPDATE source_health SET
+                last_parser_note = ?,
+                last_parser_error = CASE WHEN ? THEN ? ELSE NULL END,
+                parser_fail_count = parser_fail_count + CASE WHEN ? THEN 1 ELSE 0 END,
+                state = CASE WHEN ? AND state IN ('HEALTHY','STALE','DEGRADED') THEN 'PARSER_FAILED' ELSE state END,
+                updated_at = ?
+            WHERE endpoint_id = ?
+            """.trimIndent(),
+        ).use { ps ->
+            // A parser failure surfaces as PARSER_FAILED — it never overrides a
+            // stronger signal like BLOCKED or RATE_LIMITED. Success clears the
+            // parser error without touching parser_fail_count or the health
+            // state (the fetch already applied its own outcome).
+            ps.setNullableString(1, detail)
+            ps.setBoolean(2, failed)
+            ps.setNullableString(3, detail)
+            ps.setBoolean(4, failed)
+            ps.setBoolean(5, failed)
+            ps.setInstant(6, at)
+            ps.setObject(7, UUID.fromString(endpointId))
+            ps.executeUpdate()
+        }
+    }
+
     override fun storeEtag(endpointId: String, etag: String?) {
         sql.current().prepareStatement(
             "UPDATE source_health SET last_etag = ?, updated_at = now() WHERE endpoint_id = ?",
@@ -326,6 +363,11 @@ class JdbcSourceHealthRepository(private val sql: SqlConnections) : SourceHealth
             ps.setObject(2, UUID.fromString(endpointId))
             ps.executeUpdate()
         }
+    }
+
+    private companion object {
+        /** Parser detail is bounded diagnostic text, never a payload (Rule 6). */
+        const val MAX_PARSER_NOTE_LENGTH = 200
     }
 }
 

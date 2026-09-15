@@ -162,6 +162,9 @@ data class SourceHealthDto(
     @SerialName("consecutive_failures") val consecutiveFailures: Int,
     @SerialName("average_latency_ms") val averageLatencyMs: Int?,
     @SerialName("last_item_at") val lastItemAt: String?,
+    @SerialName("parser_fail_count") val parserFailCount: Long = 0,
+    @SerialName("last_parser_error") val lastParserError: String? = null,
+    @SerialName("last_parser_note") val lastParserNote: String? = null,
 )
 
 @Serializable

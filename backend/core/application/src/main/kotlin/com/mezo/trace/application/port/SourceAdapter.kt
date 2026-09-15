@@ -27,6 +27,8 @@ data class FetchResult(
     val items: List<NormalizedItem>,
     val nextCursor: String? = null,
     val etag: String? = null,
+    /** Parser/discovery notes (e.g. robots_disallowed, json_ld_articles:3). */
+    val notes: List<String> = emptyList(),
 )
 
 /** Thrown when an endpoint cannot be interpreted as this adapter's resource. */

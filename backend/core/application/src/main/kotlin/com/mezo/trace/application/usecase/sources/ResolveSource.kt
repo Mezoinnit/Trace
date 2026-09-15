@@ -39,6 +39,8 @@ data class SourceProposal(
  */
 class ResolveSource(private val fetcher: HttpFetcher) {
 
+    private val sitemaps = SitemapProbe(fetcher)
+
     fun execute(rawUrl: String): SourceProposal {
         val normalized = try {
             com.mezo.trace.domain.Urls.normalize(rawUrl.trim()).toString()
@@ -134,7 +136,12 @@ class ResolveSource(private val fetcher: HttpFetcher) {
             )
         }
 
-        // Degraded fallback: page monitoring only (no extraction until Phase 13).
+        // Degraded fallback: page monitoring with controlled HTML extraction
+        // (JSON-LD first, then <article> markup — plan §8 steps 7–10).
+        // Sitemap discovery runs BEFORE declaring the page degraded.
+        val sitemapNote = sitemaps.discover(normalizedUrl)
+            ?.let { listOf("sitemap_found:" + it.take(200)) }
+            ?: emptyList()
         return SourceProposal(
             inputUrl = rawUrlOf(normalizedUrl),
             normalizedUrl = normalizedUrl,
@@ -145,12 +152,12 @@ class ResolveSource(private val fetcher: HttpFetcher) {
             displayUrl = normalizedUrl,
             endpointType = ENDPOINT_PAGE,
             adapterId = ADAPTER_WEB_PAGE,
-            capabilities = setOf(Capability.HTML_EXTRACT),
+            capabilities = setOf(Capability.HTML_EXTRACT, Capability.CONDITIONAL_POLL),
             trust = TrustClassification.UNKNOWN,
             displayName = pageTitle(head) ?: hostOf(normalizedUrl),
-            notes = listOf(
-                "degraded source: no structured feed found; health monitoring only until extraction is implemented",
-            ),
+            notes = listOfNotNull(
+                "degraded source: no structured feed found; controlled HTML extraction applies",
+            ) + sitemapNote,
         )
     }
 
@@ -176,20 +183,56 @@ class ResolveSource(private val fetcher: HttpFetcher) {
     )
 
     /**
-     * Bounded regex scan of <link rel="alternate" type="...(rss|atom)+xml" href="…">.
+     * Bounded discovery of `<link rel="alternate" type="application/rss+xml|atom+xml" href="…">`.
      * Discovery only — the resolved feed becomes a proposal, never auto-created.
-     * Relative hrefs resolve against the fetched page URL (canonical first).
+     *
+     * Attribute order varies in the wild, so each `<link>` tag is scanned for
+     * its attributes rather than matched positionally. Relative hrefs resolve
+     * against `<base href>` first, then the page's canonical URL, then the
+     * fetched URL (HTML spec order).
      */
-    private fun discoverFeedLink(head: String, baseUrl: String): Pair<String, String>? =
-        FEED_LINK_REGEX.findAll(head)
-            .map { m -> Triple(m.groupValues[2], m.groupValues[1], m.groupValues[2]) } // href, type
-            .mapNotNull { (href, type, _) ->
-                val base = runCatching { CANONICAL_REGEX.find(head)?.groupValues?.get(1) }.getOrNull() ?: baseUrl
-                runCatching {
-                    java.net.URI.create(base).resolve(href.trim()).toString()
-                }.getOrNull()?.let { it to type }
+    private fun discoverFeedLink(head: String, baseUrl: String): Pair<String, String>? {
+        val base = resolveBase(head, baseUrl) ?: return null
+        return LINK_TAG_REGEX.findAll(head).firstNotNullOfOrNull { match ->
+            val attrs = attributesOf(match.value)
+            val rel = attrs["rel"]?.lowercase()?.split(REL_SPLIT)?.map { it.trim() }
+                ?: return@firstNotNullOfOrNull null
+            val type = attrs["type"]?.lowercase()?.substringBefore(';')?.trim()
+                ?: return@firstNotNullOfOrNull null
+            val href = attrs["href"]?.trim()
+                ?: return@firstNotNullOfOrNull null
+            if ("alternate" !in rel) return@firstNotNullOfOrNull null
+            if (type !in FEED_TYPES) return@firstNotNullOfOrNull null
+            if (href.isBlank()) return@firstNotNullOfOrNull null
+            runCatching { base.resolve(href).toString() }
+                .getOrNull()
+                ?.let { it to type }
+        }
+    }
+
+    /** `<base href>` → canonical → fetched URL, whichever parses first. */
+    private fun resolveBase(head: String, baseUrl: String): java.net.URI? {
+        BASE_REGEX.find(head)?.groupValues?.get(1)?.trim()?.take(200)
+            ?.let { href ->
+                runCatching { java.net.URI.create(baseUrl).resolve(href) }.getOrNull()?.let { return it }
             }
-            .firstOrNull()
+        CANONICAL_REGEX.find(head)?.groupValues?.get(1)?.trim()
+            ?.let { href ->
+                runCatching { java.net.URI.create(href) }.getOrNull()?.let { return it }
+            }
+        return runCatching { java.net.URI.create(baseUrl) }.getOrNull()
+    }
+
+    /** Attribute pairs of a single tag; lowercased names, verbatim values. */
+    private fun attributesOf(tag: String): Map<String, String> {
+        val attrs = mutableMapOf<String, String>()
+        ATTR_REGEX.findAll(tag).forEach { match ->
+            val name = match.groupValues[1].lowercase()
+            if (attrs.containsKey(name)) return@forEach
+            attrs[name] = match.groupValues[2]
+        }
+        return attrs
+    }
 
     private fun pageTitle(head: String): String? =
         TITLE_REGEX.find(head)?.groupValues?.get(1)?.trim()?.take(100)?.ifEmpty { null }
@@ -218,8 +261,20 @@ class ResolveSource(private val fetcher: HttpFetcher) {
 
         private val SEGMENT = Regex("^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 
-        private val FEED_LINK_REGEX = Regex(
-            """<link[^>]+rel=["']alternate["'][^>]+type=["'](application/(?:rss|atom)\+xml)["'][^>]+href=["']([^"']+)["']""",
+        /** Feed link types we can actually ingest with a dedicated adapter. */
+        private val FEED_TYPES = setOf("application/rss+xml", "application/atom+xml")
+
+        private val REL_SPLIT = Regex("\\s+")
+
+        private val LINK_TAG_REGEX = Regex("""<link\b[^>]*>""", RegexOption.IGNORE_CASE)
+
+        /** `name="value"` / `name='value'` pairs (unquoted attributes are not specs-valid). */
+        private val ATTR_REGEX = Regex(
+            """([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*["']([^"']*)["']""",
+        )
+
+        private val BASE_REGEX = Regex(
+            """<base[^>]+href=["']([^"']+)["']""",
             RegexOption.IGNORE_CASE,
         )
 

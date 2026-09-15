@@ -40,4 +40,10 @@ data class SourceHealth(
     val currentIntervalMinutes: Int? = null,
     /** Next scheduled poll (ADR-009). */
     val nextPollAt: java.time.Instant? = null,
+    /** Cumulative parser/extraction failures (Phase 13). */
+    val parserFailCount: Long = 0,
+    /** Last parser/extraction error detail (Phase 13, Rule 7). */
+    val lastParserError: String? = null,
+    /** Last parser/discovery outcome, including successful extraction modes. */
+    val lastParserNote: String? = null,
 )

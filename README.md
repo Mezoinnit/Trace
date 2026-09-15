@@ -166,7 +166,14 @@ Current status:
   evidence detail with full version history; entity timeline endpoint with
   window filters; Android renders related/history sections and a day-grouped
   entity timeline.
-- Phases 13+ — see the plan (generic web intelligence next).
+- **Phase 13 — completed:** generic web intelligence. Resolve prefers
+  RSS/Atom (attribute-order independent `<link>` discovery, `<base href>`
+  aware), notes sitemap existence, and falls back to controlled `web_page`
+  extraction (robots honor, JSON-LD → `<article>` → Open Graph); parser
+  health (`parser_fail_count` / `last_parser_error` / `last_parser_note` /
+  `PARSER_FAILED`) is API-visible; PAGE/FEED evidence derives idempotent
+  `ARTICLE_PUBLISHED` events.
+- Phases 14+ — see the plan (security and production hardening next).
 
 ## Non-goals for V1
 

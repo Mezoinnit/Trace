@@ -46,7 +46,10 @@ class RssAdapter(fetcher: HttpFetcher) : FeedAdapter(fetcher) {
             author = childText(item, "author") ?: childText(item, "{http://purl.org/dc/elements/1.1/}creator"),
             publishedAt = AdapterSupport.parseTimestamp(childText(item, "pubDate")),
             contentPreview = preview(item, "description", "content:encoded"),
-            metadata = mapOf("format" to "rss"),
+            metadata = mapOf(
+                "format" to "rss",
+                "provider" to Provider.RSS.name,
+            ),
         )
     }
 
