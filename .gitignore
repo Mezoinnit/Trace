@@ -3,6 +3,9 @@
 .idea/
 .vscode/
 
+# Local AI-agent state (plans, node_modules)
+.opencode/
+
 # OS
 .DS_Store
 
