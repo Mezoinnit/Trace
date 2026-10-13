@@ -23,6 +23,8 @@ class CreateWatch(
     private val requireMembership: RequireMembership,
     private val audit: com.mezo.trace.application.port.AuditLogRepository,
     private val tx: TxRunner,
+    /** Per-workspace active-watch cap (Phase 14, Rule 6). */
+    private val maxWatchesPerWorkspace: Int = DEFAULT_MAX_WATCHES_PER_WORKSPACE,
 ) {
 
     data class Rules(
@@ -47,6 +49,18 @@ class CreateWatch(
         return tx.run {
             requireMembership.execute(actor, WorkspaceId(workspaceId))
             validateName(name)
+
+            // Abuse bound (Phase 14, Rule 6): every active watch is evaluated
+            // against every event, so watch count must be bounded per tenant.
+            val activeCount = watches.listForWorkspace(workspaceId)
+                .count { it.status == com.mezo.trace.domain.WatchStatus.ACTIVE }
+            if (activeCount >= maxWatchesPerWorkspace) {
+                throw AppError.Conflict(
+                    "workspace watch limit reached ($maxWatchesPerWorkspace active watches); " +
+                        "pause or delete watches before creating more",
+                )
+            }
+
             if (endpointIds.isEmpty()) {
                 throw ValidationException("endpoint_ids", "at least one endpoint is required")
             }
@@ -100,6 +114,8 @@ class CreateWatch(
     }
 
     companion object {
+        /** Default active-watch cap per workspace (Phase 14 abuse bound). */
+        const val DEFAULT_MAX_WATCHES_PER_WORKSPACE = 100
         const val MAX_ENDPOINTS = 20
         const val MAX_ENTITIES = 10
         const val MAX_KEYWORD_TERMS = 20

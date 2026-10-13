@@ -2,10 +2,15 @@
 
 > Phase 0 contract.
 >
-> **Phase status:** structured logs, request IDs, audit records, health
-> endpoints and source-health tracking are implemented. Counters/metrics
-> (`fetch_*`, `evidence_created`, `alerts_created`, queue depth, …) land with
-> the Phase 8 scheduler/workers, which own the loops they measure. Logs, metrics, tracing, and audit must exist before any
+> **Phase status (Phase 14 — implemented):** structured logs, request IDs,
+> audit records, health endpoints, source-health tracking **and** counters/
+> metrics are live. Micrometer-backed `MetricsPort` (vendor-neutral port, Rule
+> 9-style replaceability) exposes `fetch_total{outcome=success|failure|
+> rate_limited|network_failed|parser_failed|blocked}`,
+> `evidence_created_total`, `evidence_versioned_total`, `events_created_total`,
+> `alerts_created_total` and the `job_queue_depth` / `jobs_dead_lettered`
+> gauges; scrape them at `GET /metrics`
+> (Prometheus text format). Logs, metrics, tracing, and audit must exist before any
 > pipeline stage is shipped (Definition of Done).
 
 ## 1. Logging

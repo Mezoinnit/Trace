@@ -1,0 +1,118 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:DatabaseConfig.kt$DatabaseConfig$10</ID>
+    <ID>MagicNumber:DatabaseFactory.kt$DatabaseFactory$10_000</ID>
+    <ID>MagicNumber:DatabaseFactory.kt$DatabaseFactory$3_000</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$10</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$4</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$5</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$6</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$7</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$8</ID>
+    <ID>MagicNumber:JdbcAiOperationsRepository.kt$JdbcAiOperationsRepository$9</ID>
+    <ID>MagicNumber:JdbcAuditLogRepository.kt$JdbcAuditLogRepository$4</ID>
+    <ID>MagicNumber:JdbcAuditLogRepository.kt$JdbcAuditLogRepository$5</ID>
+    <ID>MagicNumber:JdbcAuditLogRepository.kt$JdbcAuditLogRepository$6</ID>
+    <ID>MagicNumber:JdbcAuditLogRepository.kt$JdbcAuditLogRepository$7</ID>
+    <ID>MagicNumber:JdbcAuditLogRepository.kt$JdbcAuditLogRepository$8</ID>
+    <ID>MagicNumber:JdbcEntityRepository.kt$JdbcEntityRepository$4</ID>
+    <ID>MagicNumber:JdbcEntityRepository.kt$JdbcEntityRepository$5</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$10</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$11</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$12</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$13</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$14</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$15</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$4</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$5</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$6</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$7</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$8</ID>
+    <ID>MagicNumber:JdbcEvidenceRepository.kt$JdbcEvidenceRepository$9</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcAlertRepository$4</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcAlertRepository$5</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcAlertRepository$6</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcAlertRepository$7</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcAlertRepository$8</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$10</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$11</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$12</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$13</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$14</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$15</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$4</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$5</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$6</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$7</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$8</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcEventRepository$9</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$10</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$11</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$12</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$13</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$14</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$15</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$16</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$17</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$18</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$4</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$5</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$6</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$7</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$8</ID>
+    <ID>MagicNumber:JdbcIntelligenceRepositories.kt$JdbcWatchRepository$9</ID>
+    <ID>MagicNumber:JdbcJobRepository.kt$JdbcJobRepository$4</ID>
+    <ID>MagicNumber:JdbcJobRepository.kt$JdbcJobRepository$5</ID>
+    <ID>MagicNumber:JdbcJobRepository.kt$JdbcJobRepository$500</ID>
+    <ID>MagicNumber:JdbcJobRepository.kt$JdbcJobRepository$6</ID>
+    <ID>MagicNumber:JdbcJobRepository.kt$JdbcJobRepository$7</ID>
+    <ID>MagicNumber:JdbcRefreshTokenRepository.kt$JdbcRefreshTokenRepository$4</ID>
+    <ID>MagicNumber:JdbcRefreshTokenRepository.kt$JdbcRefreshTokenRepository$5</ID>
+    <ID>MagicNumber:JdbcRefreshTokenRepository.kt$JdbcRefreshTokenRepository$6</ID>
+    <ID>MagicNumber:JdbcRefreshTokenRepository.kt$JdbcRefreshTokenRepository$7</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$1440</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$60</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$10</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$4</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$5</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$6</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$7</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$8</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$9</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceHealthRepository$4</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceHealthRepository$5</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceHealthRepository$6</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceHealthRepository$7</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceHealthRepository$8</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$10</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$11</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$4</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$5</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$6</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$7</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$8</ID>
+    <ID>MagicNumber:JdbcSourceRepositories.kt$JdbcSourceRepository$9</ID>
+    <ID>MagicNumber:JdbcUserRepository.kt$JdbcUserRepository$4</ID>
+    <ID>MagicNumber:JdbcUserRepository.kt$JdbcUserRepository$5</ID>
+    <ID>MagicNumber:JdbcUserRepository.kt$JdbcUserRepository$6</ID>
+    <ID>MagicNumber:JdbcWorkspaceMembershipRepository.kt$JdbcWorkspaceMembershipRepository$4</ID>
+    <ID>MagicNumber:JdbcWorkspaceRepository.kt$JdbcWorkspaceRepository$4</ID>
+    <ID>MagicNumber:JdbcWorkspaceRepository.kt$JdbcWorkspaceRepository$5</ID>
+    <ID>MaxLineLength:JdbcEntityRepository.kt$JdbcEntityRepository$while (rs.next()) out += com.mezo.trace.domain.EntityIdentifier(rs.getString("id_type"), rs.getString("id_value"))</ID>
+    <ID>MaxLineLength:JdbcIntelligenceRepositories.kt$JdbcEventRepository$" AND EXISTS (SELECT 1 FROM event_entities ent WHERE ent.event_id = events.id AND ent.entity_id = ?::uuid)"</ID>
+    <ID>MaxLineLength:JdbcIntelligenceRepositories.kt$JdbcEventRepository$"UPDATE events SET confidence = ?, confidence_score = ?, confidence_reasoning = ?::jsonb, updated_at = now() WHERE id = ?"</ID>
+    <ID>MaxLineLength:JdbcIntelligenceRepositories.kt$JdbcEventRepository$if (event.mergedIntoEventId != null) ps.setObject(15, UUID.fromString(event.mergedIntoEventId)) else ps.setNull(15, java.sql.Types.NULL)</ID>
+    <ID>MaxLineLength:JdbcSourceRepositories.kt$JdbcSourceEndpointRepository$sql.current().prepareStatement("UPDATE source_endpoints SET status = ?, updated_at = ? WHERE id = ?")</ID>
+    <ID>NewLineAtEndOfFile:DatabaseConfig.kt$com.mezo.trace.infra.persistence.DatabaseConfig.kt</ID>
+    <ID>NewLineAtEndOfFile:DatabaseFactory.kt$com.mezo.trace.infra.persistence.DatabaseFactory.kt</ID>
+    <ID>NewLineAtEndOfFile:Migrator.kt$com.mezo.trace.infra.persistence.Migrator.kt</ID>
+    <ID>TooGenericExceptionCaught:TxRunnerImpl.kt$TxRunnerImpl$t: Throwable</ID>
+    <ID>TooManyFunctions:JdbcEntityRepository.kt$JdbcEntityRepository : EntityRepository</ID>
+    <ID>TooManyFunctions:JdbcIntelligenceRepositories.kt$JdbcEventRepository : EventRepository</ID>
+    <ID>TooManyFunctions:JdbcJobRepository.kt$JdbcJobRepository : JobRepository</ID>
+    <ID>UnusedPrivateMember:JdbcIntelligenceRepositories.kt$JdbcEventRepository$private fun decodeRef(json: String?): Map&lt;String, String&gt;</ID>
+    <ID>UseCheckOrError:TxRunnerImpl.kt$TxRunnerImpl$throw IllegalStateException( "no transaction active; repository calls must run inside TxRunner.run", )</ID>
+  </CurrentIssues>
+</SmellBaseline>

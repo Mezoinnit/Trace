@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:Argon2PasswordHasher.kt$Argon2PasswordHasher$4</ID>
+    <ID>MagicNumber:Argon2PasswordHasher.kt$Argon2PasswordHasher$5</ID>
+    <ID>MagicNumber:SecurityConfig.kt$SecurityConfig.Companion$15L</ID>
+    <ID>MagicNumber:SecurityConfig.kt$SecurityConfig.Companion$30L</ID>
+    <ID>ReturnCount:Argon2PasswordHasher.kt$Argon2PasswordHasher$override fun verify(plain: String, encoded: String): Boolean</ID>
+    <ID>UnusedParameter:Argon2PasswordHasher.kt$Argon2PasswordHasher$salt: ByteArray</ID>
+    <ID>UseCheckOrError:SecurityConfig.kt$SecurityConfig.Companion$throw IllegalStateException("JWT_SECRET is required in production")</ID>
+  </CurrentIssues>
+</SmellBaseline>

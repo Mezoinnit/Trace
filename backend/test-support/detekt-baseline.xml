@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:TestSupport.kt$0x42</ID>
+    <ID>MagicNumber:TestSupport.kt$15</ID>
+    <ID>MagicNumber:TestSupport.kt$30</ID>
+    <ID>MagicNumber:TestSupport.kt$32</ID>
+    <ID>MatchingDeclarationName:TestSupport.kt$TestClock : ClockPort</ID>
+  </CurrentIssues>
+</SmellBaseline>

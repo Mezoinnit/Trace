@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>TooGenericExceptionCaught:ApiApplication.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:JobLoop.kt$JobLoop$t: Throwable</ID>
+    <ID>ComplexCondition:Routes.kt$it.entityIds != null || it.keywordsInclude != null || it.keywordsExclude != null || it.semantic != null || it.maxAgeHours != null || it.minSignificance != null || it.minConfidence != null</ID>
+    <ID>ConstructorParameterNaming:Dtos.kt$MemberDto$val display_name: String?</ID>
+    <ID>ConstructorParameterNaming:Dtos.kt$MemberDto$val user_id: String</ID>
+    <ID>CyclomaticComplexMethod:Routes.kt$fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters)</ID>
+    <ID>LongMethod:Routes.kt$fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters)</ID>
+    <ID>MagicNumber:ApiApplication.kt$8080</ID>
+    <ID>MagicNumber:Routes.kt$100</ID>
+    <ID>MagicNumber:Routes.kt$200</ID>
+    <ID>MagicNumber:Routes.kt$365</ID>
+    <ID>MagicNumber:Routes.kt$50</ID>
+    <ID>MagicNumber:Routes.kt$500</ID>
+    <ID>MatchingDeclarationName:ApiApplication.kt$RateLimiters</ID>
+    <ID>MatchingDeclarationName:SecureHeaders.kt$SecureHeadersConfig</ID>
+    <ID>MaxLineLength:ApiContainer.kt$ApiContainer$fun</ID>
+    <ID>MaxLineLength:ApiContainer.kt$ApiContainer$val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, auditLog, txRunner)</ID>
+    <ID>MaxLineLength:ApiContainer.kt$ApiContainer$val refreshSession = RefreshSession(refreshTokens, users, auditLog, txRunner, tokenIssuer, clock, security.refreshTokenTtl)</ID>
+    <ID>MaxLineLength:ApiContainer.kt$ApiContainer$val registerUser = RegisterUser(users, workspaces, memberships, passwordHasher, auditLog, txRunner, clock, sessionIssuer)</ID>
+    <ID>MaxLineLength:AuthFlowApiTest.kt$AuthFlowApiTest$assertEquals(HttpStatusCode.NoContent, client.authedPost("/api/v1/auth/signout", refreshed.accessToken(), """{"refresh_token":"${refreshed.refreshToken()}"}""").status)</ID>
+    <ID>MaxLineLength:RateLimitApiTest.kt$RateLimitApiTest$val body = Json.parseToJsonElement(third.bodyAsText()).jsonObject["error"] as kotlinx.serialization.json.JsonObject</ID>
+    <ID>MaxLineLength:Routes.kt$call.respond(HttpStatusCode.OK, toSourceDetailDto(c.getSourceDetail.execute(call.parameters["id"].orEmpty())))</ID>
+    <ID>MaxLineLength:SchedulerQueueITest.kt$SchedulerQueueITest$container.refineSchedule(endpointId, com.mezo.trace.application.usecase.scheduler.IntervalCalculator.Outcome.SUCCESS_EMPTY)</ID>
+    <ID>MaxLineLength:StaleHealthITest.kt$StaleHealthITest$"UPDATE source_health SET last_success_at = now() - (? || ' hours')::interval WHERE endpoint_id = ?::uuid"</ID>
+    <ID>MaxLineLength:WatchQuotaITest.kt$WatchQuotaITest$com.mezo.trace.domain.UserId(session["user"]!!.let { (it as kotlinx.serialization.json.JsonObject)["id"]!!.toString().trim('"') })</ID>
+    <ID>NewLineAtEndOfFile:EvidencePipelineITest.kt$com.mezo.trace.server.api.itest.EvidencePipelineITest.kt</ID>
+    <ID>ThrowsCount:Auth.kt$fun ApplicationCall.requireUserId(tokenIssuer: TokenIssuer): UserId</ID>
+    <ID>ThrowsCount:Routes.kt$fun Route.apiV1Routes(c: ApiContainer, rateLimits: RateLimiters)</ID>
+    <ID>UnusedParameter:Routes.kt$rateLimits: RateLimiters</ID>
+    <ID>UnusedPrivateProperty:AuditRemediationITest.kt$AuditRemediationITest$val userId = userIdOf(session)</ID>
+  </CurrentIssues>
+</SmellBaseline>

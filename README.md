@@ -173,7 +173,16 @@ Current status:
   health (`parser_fail_count` / `last_parser_error` / `last_parser_note` /
   `PARSER_FAILED`) is API-visible; PAGE/FEED evidence derives idempotent
   `ARTICLE_PUBLISHED` events.
-- Phases 14+ — see the plan (security and production hardening next).
+- **Phase 14 — completed:** security and production hardening. Secure
+  response headers + request body bounds (`SecureHeaders` plugin; HSTS behind
+  `TRACE_HSTS_ENABLED`, `TRACE_MAX_BODY_BYTES` 411/413 enforcement), per-workspace
+  source quota, Prometheus-format `/metrics` (fetch/evidence/alerts counters,
+  `job_queue_depth` gauge), supply-chain checks in CI (Dependabot + detekt),
+  verified backup/restore scripts with a compose backup service, incident
+  runbook (`INCIDENT_RESPONSE.md`), and the mandatory security test matrix:
+  cross-tenant isolation, auth abuse/enumeration, watch-quota abuse, oversized
+  payloads, malformed content, secret-redaction proof.
+- Phases 15+ — see the plan.
 
 ## Non-goals for V1
 

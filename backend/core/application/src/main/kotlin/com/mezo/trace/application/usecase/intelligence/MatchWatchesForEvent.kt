@@ -4,6 +4,8 @@ import com.mezo.trace.application.model.ActorType
 import com.mezo.trace.application.model.AuditEntry
 import com.mezo.trace.application.port.AlertRepository
 import com.mezo.trace.application.port.AuditLogRepository
+import com.mezo.trace.application.port.MetricsPort
+import com.mezo.trace.application.port.NoopMetrics
 import com.mezo.trace.application.port.TxRunner
 import com.mezo.trace.application.port.WatchRepository
 import com.mezo.trace.domain.Event
@@ -21,6 +23,7 @@ class MatchWatchesForEvent(
     private val entities: com.mezo.trace.application.port.EntityRepository?,
     private val aiGateway: com.mezo.trace.application.port.AiGateway? = null,
     private val tx: TxRunner,
+    private val metrics: MetricsPort = NoopMetrics(),
 ) {
 
     data class MatchSummary(
@@ -98,6 +101,7 @@ class MatchWatchesForEvent(
                         metadata = mapOf("alerts" to created.toString(), "endpoint_id" to endpointId),
                     ),
                 )
+                repeat(created) { metrics.increment("alerts_created_total") }
             }
             MatchSummary(candidates.size, created, workspaces)
         }

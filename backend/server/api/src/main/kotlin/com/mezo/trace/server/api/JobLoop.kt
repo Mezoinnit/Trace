@@ -1,4 +1,4 @@
-package com.mezo.trace.server.worker
+package com.mezo.trace.server.api
 
 import com.mezo.trace.application.port.ClockPort
 import com.mezo.trace.application.port.JobRepository
@@ -31,7 +31,7 @@ class JobLoop(
     private val concurrency: Int = DEFAULT_CONCURRENCY,
     private val batchSize: Int = DEFAULT_BATCH_SIZE,
     private val leaseTtl: Duration = DEFAULT_LEASE_TTL,
-    private val workerId: String = "worker-" + java.util.UUID.randomUUID().toString().take(8),
+    private val workerId: String = "worker-" + java.util.UUID.randomUUID().toString().take(WORKER_ID_SUFFIX_LENGTH),
 ) {
 
     data class TickResult(val claimed: Int, val completed: Int, val retried: Int, val dead: Int)
@@ -108,7 +108,7 @@ class JobLoop(
 
     private fun fail(job: Job, code: String, message: String): ProcessResult {
         val backoff = Duration.ofSeconds(
-            BACKOFF_BASE_SECONDS * (1L shl (job.attempts - 1).coerceIn(0, 15)),
+            BACKOFF_BASE_SECONDS * (1L shl (job.attempts - 1).coerceIn(0, MAX_BACKOFF_SHIFT)),
         )
         var dead = false
         tx.run {
@@ -123,6 +123,8 @@ class JobLoop(
         const val DEFAULT_BATCH_SIZE = 16
         val DEFAULT_LEASE_TTL: Duration = Duration.ofMinutes(10)
         const val BACKOFF_BASE_SECONDS = 30L
+        const val MAX_BACKOFF_SHIFT = 15
+        const val WORKER_ID_SUFFIX_LENGTH = 8
     }
 }
 

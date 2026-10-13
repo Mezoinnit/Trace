@@ -65,6 +65,32 @@ class SessionStore(private val context: Context) {
         }
     }
 
+    /**
+     * Rotates the session using the stored refresh token (rotation means the
+     * old refresh token is consumed server-side; the new pair is persisted).
+     * Returns null when there is nothing to refresh or the server rejected
+     * the token (revoked family / expired) — callers then clear the session.
+     */
+    suspend fun refresh(api: com.mezo.trace.core.network.ApiClient): Session? {
+        val token = current()?.refreshToken ?: return null
+        if (token.isBlank()) return null
+        return try {
+            val response = api.refresh(token)
+            val refreshed = Session(
+                accessToken = response.accessToken,
+                refreshToken = response.refreshToken,
+                userId = response.user.id,
+                email = response.user.email,
+                workspaceId = response.workspace.id,
+                workspaceName = response.workspace.name,
+            )
+            save(refreshed)
+            refreshed
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun clear() {
         context.dataStore.edit { it.clear() }
     }

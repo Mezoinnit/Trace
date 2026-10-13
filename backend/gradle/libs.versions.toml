@@ -13,6 +13,7 @@ junit-platform-launcher = "1.12.1"
 bouncycastle = "1.78.1"
 java-jwt = "4.4.0"
 logstash-encoder = "7.4"
+micrometer = "1.13.6"
 zonky = "2.0.7"
 zonky-binaries = "16.4.0"
 
@@ -41,6 +42,9 @@ logstash-encoder = { module = "net.logstash.logback:logstash-logback-encoder", v
 bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
 
+micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+
 embedded-postgres = { module = "io.zonky.test:embedded-postgres", version.ref = "zonky" }
 embedded-postgres-binaries-bom = { module = "io.zonky.test.postgres:embedded-postgres-binaries-bom", version.ref = "zonky-binaries" }
 embedded-postgres-binaries-linux-amd64 = { module = "io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64" }
@@ -52,3 +56,4 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.7" }

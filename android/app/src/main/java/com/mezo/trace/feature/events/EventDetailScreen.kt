@@ -3,20 +3,30 @@ package com.mezo.trace.feature.events
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mezo.trace.core.network.EventDetailResponse
 import com.mezo.trace.core.network.EventDto
 import com.mezo.trace.ui.components.Badge
+import com.mezo.trace.ui.components.SignificanceBadge
+import com.mezo.trace.ui.components.relTime
+import com.mezo.trace.ui.theme.TraceDimens
 
-/** Event detail (plan §3.5): what happened, sources, supporting evidence,
- *  linked entities, contradictions if contested. */
+/** Event detail (plan §3.5): what happened, sources, evidence, entities, history. */
 @Composable
 fun EventDetailScreen(
     detail: EventDetailResponse?,
@@ -29,50 +39,75 @@ fun EventDetailScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(TraceDimens.ScreenPad),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(event.title, style = MaterialTheme.typography.headlineSmall)
-        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Badge(event.type)
-            Badge("CONF ${event.confidence}")
-            Badge("SIG ${event.significance}")
-            Badge(event.status)
-        }
-        Text("WHAT HAPPENED", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        Text(event.summary ?: "No summary available.", style = MaterialTheme.typography.bodyMedium)
-
-        Text("WHEN", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(
-            "occurred: " + (event.occurredAt ?: "unknown"),
-            style = MaterialTheme.typography.bodySmall,
+            event.title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
         )
-        Text("discovered: ${event.discoveredAt}", style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SignificanceBadge(event.significance)
+            Badge(event.confidence)
+            Badge(event.type)
+            if (event.status != "CONFIRMED") Badge(event.status)
+        }
+        Text(
+            relTime(event.occurredAt ?: event.discoveredAt),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
-        // SOURCES & EVIDENCE (plan §12: attribution + canonical links).
-        Text("SOURCES", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        SectionHeader("WHAT HAPPENED")
+        Text(
+            event.summary ?: "No summary available.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        SectionHeader("SOURCES & EVIDENCE")
         detail.evidence.forEach { item ->
-            Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Badge(item.role)
                     item.sourceName?.let { Badge(it) }
                     item.sourceTrust?.let { Badge(it) }
                 }
-                Text(item.title ?: "(untitled)", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    item.title ?: "(untitled)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 item.canonicalUrl?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
 
-        // ENTITIES (timeline entry points).
         if (detail.entities.isNotEmpty()) {
-            Text("ENTITIES", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            SectionHeader("ENTITIES")
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 detail.entities.forEach { entity ->
-                    androidx.compose.material3.AssistChip(
+                    AssistChip(
                         onClick = { onOpenEntity(entity.id) },
                         label = { Text(entity.name) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            labelColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                        ),
                     )
                 }
             }
@@ -86,31 +121,47 @@ fun EventDetailScreen(
             )
         }
 
-        // RELATED EVENTS (plan §3.5).
         if (related.isNotEmpty()) {
-            Text("RELATED EVENTS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            SectionHeader("RELATED EVENTS")
             related.forEach { rel ->
                 Text(
                     "• ${rel.title}",
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
 
-        // HISTORY (plan §12): status/confidence transitions over time.
         if (history.isNotEmpty()) {
-            Text("HISTORY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            SectionHeader("HISTORY")
             history.forEach { entry ->
                 Text(
-                    "${entry.at.take(19)} · ${entry.action}" +
+                    "${entry.at.take(19).replace('T', ' ')} · ${entry.action}" +
                         (entry.detail["band_from"]?.let { " ($it → ${entry.detail["band_to"]})" } ?: ""),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
+
+        Spacer(Modifier.height(16.dp))
     }
+}
+
+@Composable
+private fun SectionHeader(label: String) {
+    Spacer(Modifier.height(10.dp))
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    HorizontalDivider(
+        Modifier.padding(top = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+    Spacer(Modifier.height(6.dp))
 }

@@ -85,4 +85,24 @@ class SsrfGuardTest {
             SsrfGuard.requireValidRedirect(httpsPublic, "file:///etc/passwd")
         }
     }
+
+    @Test
+    fun `dns rebinding between validation and connection is blocked`() {
+        // Classic TOCTOU rebinding server: the first resolution (initial
+        // validation) returns a public address; the resolution immediately
+        // before connect returns a private one. The fetch must fail before
+        // any socket is opened.
+        var resolutions = 0
+        val rebinding = SsrfGuard.DnsResolver { _ ->
+            if (resolutions++ == 0) arrayOf(InetAddress.getByName("93.184.216.34"))
+            else arrayOf(InetAddress.getByName("10.0.0.9"))
+        }
+        val fetcher = SafeHttpFetcher(allowHttp = true, dns = rebinding)
+
+        val failure = assertFailsWith<FetchFailure> {
+            fetcher.fetch(com.mezo.trace.application.port.FetchRequest("http://rebind.internal/"))
+        }
+        assertEquals(FetchFailure.Kind.BLOCKED_PRIVATE_ADDRESS, failure.kind)
+        assertTrue(resolutions >= 2, "expected a re-resolution before connect")
+    }
 }

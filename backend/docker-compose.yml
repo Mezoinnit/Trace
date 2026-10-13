@@ -16,5 +16,29 @@ services:
       timeout: 3s
       retries: 10
 
+  # Scheduled database backups (DEPLOYMENT.md §7, Phase 14): runs the same
+  # pg_dump/verify/prune logic as backend/scripts/backup.sh against the
+  # postgres service. Override TRACE_BACKUP_DIR / TRACE_BACKUP_RETENTION to
+  # point the volume at durable storage.
+  pg_backup:
+    image: postgres:16
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: trace
+      PGPASSWORD: trace
+      PGDATABASE: trace
+      TRACE_BACKUP_DIR: /backups
+      TRACE_BACKUP_RETENTION: "14"
+    volumes:
+      - trace_backups:/backups
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/bash", "/scripts/backup.sh"]
+    restart: unless-stopped
+
 volumes:
   trace_pgdata:
+  trace_backups:

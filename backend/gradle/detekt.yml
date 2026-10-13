@@ -1,0 +1,29 @@
+# Phase 14 static analysis configuration. Builds on detekt defaults with a
+# few project-specific tunings; keep this file small — defaults are fine.
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 120
+  LongParameterList:
+    active: true
+    functionThreshold: 12
+    constructorThreshold: 12
+
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2', '3']
+    ignorePropertyDeclaration: true
+    ignoreAnnotation: true
+  ReturnCount:
+    active: true
+    max: 4
+
+naming:
+  FunctionNaming:
+    active: true
+    # Compose-style and test function names are exempt from camelCase.
+    ignoreAnnotated: ['Composable', 'Test']

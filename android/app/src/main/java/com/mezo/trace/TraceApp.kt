@@ -23,6 +23,11 @@ class TraceApp : Application() {
         ApiClient(
             baseUrl = BuildConfig.BASE_URL,
             accessTokenProvider = { runBlocking { sessionStore.current()?.accessToken } },
+            // On 401, rotate the session once and retry (single-flight inside
+            // the client). Referencing `api` here is safe: the hook only runs
+            // after construction, and refresh failures return false → the
+            // original 401 propagates and the UI returns to sign-in.
+            reauth = { sessionStore.refresh(api) != null },
         )
     }
 

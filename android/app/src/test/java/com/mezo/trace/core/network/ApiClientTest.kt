@@ -6,6 +6,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -104,5 +106,115 @@ class ApiClientTest {
         }
         assertEquals("VALIDATION_ERROR", thrown?.code)
         assertEquals("email is not valid", thrown?.message)
+    }
+
+    // ---- token refresh (single-flight + retry-once) ----
+
+    private var currentToken = "stale-token"
+
+    /** Serves /events with 401-then-success; refreshes are counted via the hook. */
+    private fun refreshingClient(
+        reauth: suspend () -> Boolean,
+    ): ApiClient {
+        val engine = MockEngine { request ->
+            val path = request.url.encodedPath
+            val auth = request.headers[HttpHeaders.Authorization]
+            when {
+                path == "/api/v1/events" && auth == "Bearer $currentToken" && currentToken != "fresh" -> respond(
+                    content = ByteReadChannel(
+                        """{"error":{"code":"UNAUTHENTICATED","message":"invalid or expired access token",
+                            "request_id":"r2","details":[]}}""",
+                    ),
+                    status = HttpStatusCode.Unauthorized,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                path == "/api/v1/events" -> respond(
+                    content = ByteReadChannel("""{"items":[],"next_cursor":null}"""),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> respond(
+                    content = ByteReadChannel("""{"error":{"code":"UNKNOWN","message":"unexpected $path"}}"""),
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        return ApiClient("http://test", { currentToken }, engine, reauth)
+    }
+
+    @Test
+    fun `stale token triggers one refresh then succeeds on retry`() = runTest {
+        var refreshCount = 0
+        val client = refreshingClient(reauth = {
+            refreshCount++
+            currentToken = "fresh"
+            true
+        })
+
+        val feed = client.events(null)
+
+        assertTrue(feed.items.isEmpty())
+        assertEquals(1, refreshCount)
+    }
+
+    @Test
+    fun `failed refresh surfaces the original 401 without retry loop`() = runTest {
+        var requestCount = 0
+        var token = "stale-token"
+        val engine = MockEngine { request ->
+            when {
+                request.url.encodedPath.endsWith("/auth/refresh") -> respond(
+                    content = ByteReadChannel(
+                        """{"error":{"code":"UNAUTHENTICATED","message":"refresh token rejected",
+                            "request_id":"r3","details":[]}}""",
+                    ),
+                    status = HttpStatusCode.Unauthorized,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> {
+                    requestCount++
+                    respond(
+                        content = ByteReadChannel(
+                            """{"error":{"code":"UNAUTHENTICATED","message":"invalid or expired access token",
+                                "request_id":"r4","details":[]}}""",
+                        ),
+                        status = HttpStatusCode.Unauthorized,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            }
+        }
+        val client = ApiClient("http://test", { token }, engine, reauth = { false })
+
+        var thrown: ApiException? = null
+        try {
+            client.events(null)
+        } catch (e: ApiException) {
+            thrown = e
+        }
+
+        assertEquals("UNAUTHENTICATED", thrown?.code)
+        assertEquals(1, requestCount)
+    }
+
+    @Test
+    fun `concurrent 401s share one single-flight refresh`() = runTest {
+        var refreshCount = 0
+        val client = refreshingClient(reauth = {
+            refreshCount++
+            // Suspend so the second request's 401 arrives mid-refresh and
+            // must join the in-flight refresh instead of starting its own.
+            kotlinx.coroutines.yield()
+            currentToken = "fresh"
+            true
+        })
+
+        kotlinx.coroutines.coroutineScope {
+            launch { client.events(null) }
+            launch { client.events(null) }
+        }
+
+        assertEquals(1, refreshCount)
     }
 }
