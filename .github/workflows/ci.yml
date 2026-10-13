@@ -41,6 +41,10 @@ jobs:
           DATABASE_PASSWORD: trace
         run: ./gradlew build
 
+      - name: Static analysis (detekt)
+        working-directory: backend
+        run: ./gradlew detekt
+
       - name: Verify migrations on CI database
         working-directory: backend
         env:

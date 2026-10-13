@@ -5,6 +5,7 @@ import com.mezo.trace.domain.ValidationException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.log
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import io.ktor.server.request.path
@@ -34,6 +35,14 @@ private suspend fun ApplicationCall.envelope(
 ) = respond(status, ErrorEnvelope(ErrorBody(code, message, callId, details)))
 
 fun StatusPagesConfig.apiErrorEnvelope() {
+    // Malformed request bodies (bad JSON, missing required fields, wrong
+    // types) surface as 400 instead of an unhandled 500 — a Phase 14
+    // hardening fix surfaced by the cross-tenant test matrix.
+    exception<BadRequestException> { call, cause ->
+        call.application.log.warn("bad request on ${call.request.path()}: ${cause.message}")
+        call.envelope(HttpStatusCode.BadRequest, "VALIDATION_ERROR", "request body is invalid")
+    }
+
     exception<AppError> { call, cause ->
         if (cause is AppError.RateLimited) {
             call.response.headers.append("Retry-After", cause.retryAfterSeconds.toString())

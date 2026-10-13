@@ -5,6 +5,7 @@ import com.mezo.trace.infra.persistence.DatabaseFactory
 import com.mezo.trace.infra.persistence.JdbcJobRepository
 import com.mezo.trace.infra.persistence.Migrator
 import com.mezo.trace.server.api.ApiContainer
+import com.mezo.trace.server.api.JobLoop
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking

@@ -1,7 +1,9 @@
 package com.mezo.trace.application.usecase.intelligence
 
 import com.mezo.trace.application.port.EventRepository
+import com.mezo.trace.application.port.MetricsPort
 import com.mezo.trace.application.port.NormalizedItem
+import com.mezo.trace.application.port.NoopMetrics
 import com.mezo.trace.application.port.SourceRepository
 import com.mezo.trace.application.port.TxRunner
 import com.mezo.trace.application.usecase.evidence.IngestEvidence
@@ -30,6 +32,8 @@ class DeriveEventsFromEvidence(
     private val entities: com.mezo.trace.application.port.EntityRepository,
     private val audit: com.mezo.trace.application.port.AuditLogRepository,
     private val tx: TxRunner,
+    /** Operational metrics (Phase 14); optional so existing callers stay valid. */
+    private val metrics: MetricsPort = NoopMetrics(),
 ) {
 
     fun execute(endpoint: SourceEndpoint, touched: List<IngestEvidence.EvidenceTouch>): List<Event> {
@@ -88,6 +92,7 @@ class DeriveEventsFromEvidence(
             return raced
         }
         events.linkEvidence(created.id, touch.evidenceId)
+        metrics.increment("events_created_total")
 
         val scored = ConfidenceCalculator.calculate(
             ConfidenceCalculator.Inputs(
@@ -166,6 +171,7 @@ class DeriveEventsFromEvidence(
 
         events.linkEvidence(created.id, touch.evidenceId)
         linkRepositoryEntity(created.id, item)
+        metrics.increment("events_created_total")
 
         // Seed confidence for the new event.
         val scored = ConfidenceCalculator.calculate(

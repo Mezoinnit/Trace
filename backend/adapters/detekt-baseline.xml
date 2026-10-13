@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:WebPageAdapter.kt$WebPageAdapter$override fun fetch(endpointUri: String, cursor: String?, knownEtag: String?): FetchResult</ID>
+    <ID>LoopWithTooManyJumpStatements:AtomAdapter.kt$AtomAdapter$for</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter$304</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter$401</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter$403</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter$429</ID>
+    <ID>MagicNumber:GithubAdapter.kt$GithubAdapter$304</ID>
+    <ID>MagicNumber:GithubAdapter.kt$GithubAdapter$401</ID>
+    <ID>MagicNumber:GithubAdapter.kt$GithubAdapter$403</ID>
+    <ID>MagicNumber:GithubAdapter.kt$GithubAdapter$404</ID>
+    <ID>MagicNumber:GithubAdapter.kt$GithubAdapter$429</ID>
+    <ID>MagicNumber:HtmlExtractor.kt$HtmlExtractor$200</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$1024</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$200</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$299</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$304</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$401</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$403</ID>
+    <ID>MagicNumber:WebPageAdapter.kt$WebPageAdapter$429</ID>
+    <ID>MaxLineLength:FeedAdaptersTest.kt$FeedAdaptersTest$mutableMapOf("https://blog.example.com/feed.xml" to StubHttpFetcher.Response(statusCode = 304, body = ByteArray(0), etag = "\"same\""))</ID>
+    <ID>MaxLineLength:FeedAdaptersTest.kt$FeedAdaptersTest$val fetcher = StubHttpFetcher(mutableMapOf("https://blog.example.com/feed.xml" to StubHttpFetcher.Response(body = rssFixture.toByteArray())))</ID>
+    <ID>MaxLineLength:FeedAdaptersTest.kt$FeedAdaptersTest$val fetcher = StubHttpFetcher(mutableMapOf("https://evil.example/feed.xml" to StubHttpFetcher.Response(body = xxe.toByteArray())))</ID>
+    <ID>MaxLineLength:FeedAdaptersTest.kt$FeedAdaptersTest$val fetcher = StubHttpFetcher(mutableMapOf("https://feeds.example.com/atom.xml" to StubHttpFetcher.Response(body = atomFixture.toByteArray())))</ID>
+    <ID>MaxLineLength:HtmlExtractor.kt$HtmlExtractor$is kotlinx.serialization.json.JsonArray -&gt; parsed.mapNotNull { it as? kotlinx.serialization.json.JsonObject }</ID>
+    <ID>MaxLineLength:HtmlExtractor.kt$HtmlExtractor$return patterns.firstNotNullOfOrNull { it.find(html)?.groupValues?.get(1)?.trim()?.takeIf { v -&gt; v.isNotBlank() } }</ID>
+    <ID>MaxLineLength:WebPageAdapterTest.kt$WebPageAdapterTest$fetcher.serve("https://site.example.com/robots.txt", StubHttpFetcher.Response(contentType = "text/plain", body = body.toByteArray(), statusCode = statusCode))</ID>
+    <ID>MaxLineLength:WebPageAdapterTest.kt$WebPageAdapterTest$fetcher.serve(pageUrl, StubHttpFetcher.Response(contentType = "text/html", body = body.toByteArray(), statusCode = statusCode))</ID>
+    <ID>RethrowCaughtException:FeedAdapter.kt$FeedAdapter$throw failure</ID>
+    <ID>RethrowCaughtException:GithubAdapter.kt$GithubAdapter$throw failure</ID>
+    <ID>ReturnCount:GithubEndpoint.kt$GithubEndpoint.Companion$fun fromUrl(rawUrl: String): GithubEndpoint?</ID>
+    <ID>ThrowsCount:FeedAdapter.kt$FeedAdapter$protected fun fetchFeed( endpointUri: String, knownEtag: String?, extract: (Document) -&gt; List&lt;NormalizedItem&gt;, ): FetchResult</ID>
+    <ID>ThrowsCount:GithubEndpoint.kt$GithubEndpoint.Companion$fun parse(endpointUri: String): GithubEndpoint</ID>
+    <ID>TooGenericExceptionCaught:FeedAdapter.kt$FeedAdapter$failure: Exception</ID>
+    <ID>TooGenericExceptionCaught:SafeXml.kt$SafeXml$e: Exception</ID>
+    <ID>TooManyFunctions:HtmlExtractor.kt$HtmlExtractor</ID>
+    <ID>UnusedPrivateProperty:HtmlExtractorTest.kt$HtmlExtractorTest$private val fetcher = StubHttpFetcher()</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:SsrfGuard.kt$SsrfGuard$address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress || address.isMulticastAddress</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$15</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$1_000_000</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$301</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$306</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$308</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$401</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$403</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$429</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$5</ID>
+    <ID>MagicNumber:SafeHttpFetcher.kt$SafeHttpFetcher$8192</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0x64</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0x9b</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0xFC</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0xFE</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0xFF</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$0xff</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$10</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$100</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$11</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$12</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$127</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$15</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$16</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$168</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$172</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$18</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$19</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$192</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$198</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$224</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$31</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$64</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$8</ID>
+    <ID>MagicNumber:SsrfGuard.kt$SsrfGuard$9</ID>
+    <ID>ReturnCount:SsrfGuard.kt$SsrfGuard$private fun isAllowedV6(ip: java.net.Inet6Address): Boolean</ID>
+    <ID>ThrowsCount:SafeHttpFetcher.kt$SafeHttpFetcher$private fun send(uri: URI, etag: String?, timeoutMs: Long): HttpResponse&lt;java.io.InputStream&gt;</ID>
+    <ID>ThrowsCount:SsrfGuard.kt$SsrfGuard$fun requirePublicHost(host: String, dns: DnsResolver = systemDns)</ID>
+  </CurrentIssues>
+</SmellBaseline>

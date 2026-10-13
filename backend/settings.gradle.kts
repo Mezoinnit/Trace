@@ -20,6 +20,7 @@ include(
     ":infrastructure:security",
     ":infrastructure:fetch",
     ":infrastructure:persistence",
+    ":infrastructure:metrics",
     ":adapters",
     ":ai",
     ":server:api",

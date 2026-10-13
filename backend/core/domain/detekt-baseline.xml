@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:Urls.kt$Urls$fun normalize(raw: String): java.net.URI</ID>
+    <ID>MagicNumber:Email.kt$Email.Companion$320</ID>
+    <ID>MagicNumber:Urls.kt$Urls$443</ID>
+    <ID>MagicNumber:Urls.kt$Urls$80</ID>
+    <ID>MemberNameEqualsClassName:Version.kt$Version$const val VERSION = "0.1.0"</ID>
+    <ID>NewLineAtEndOfFile:Version.kt$com.mezo.trace.domain.Version.kt</ID>
+    <ID>NewLineAtEndOfFile:WorkspaceId.kt$com.mezo.trace.domain.WorkspaceId.kt</ID>
+    <ID>NewLineAtEndOfFile:WorkspaceIdTest.kt$com.mezo.trace.domain.WorkspaceIdTest.kt</ID>
+    <ID>ThrowsCount:Email.kt$Email.Companion$fun create(raw: String): Email</ID>
+    <ID>ThrowsCount:PasswordPolicy.kt$PasswordPolicy$fun validate(password: String)</ID>
+    <ID>ThrowsCount:Urls.kt$Urls$fun normalize(raw: String): java.net.URI</ID>
+    <ID>TooGenericExceptionCaught:Urls.kt$Urls$e: Exception</ID>
+    <ID>UseRequire:Urls.kt$Urls$throw IllegalArgumentException("missing host")</ID>
+    <ID>UseRequire:Urls.kt$Urls$throw IllegalArgumentException("unsupported scheme")</ID>
+  </CurrentIssues>
+</SmellBaseline>

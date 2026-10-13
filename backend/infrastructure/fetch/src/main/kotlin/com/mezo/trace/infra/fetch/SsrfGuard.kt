@@ -43,15 +43,17 @@ object SsrfGuard {
     }
 
     /**
-     * Validates a redirect target before it is followed.
+     * Validates a redirect target before it is followed. DNS resolution
+     * defaults to the system resolver; the fetcher passes its injected
+     * resolver so every hop uses the same source of truth.
      */
-    fun requireValidRedirect(current: URI, location: String): URI {
+    fun requireValidRedirect(current: URI, location: String, dns: DnsResolver = systemDns): URI {
         val next = runCatching { current.resolve(location) }.getOrNull()
             ?: throw FetchFailure(FetchFailure.Kind.UNSUPPORTED_SCHEME, "unresolvable redirect target")
         if (next.scheme != "https" && next.scheme != "http") {
             throw FetchFailure(FetchFailure.Kind.UNSUPPORTED_SCHEME, "blocked redirect scheme: ${next.scheme}")
         }
-        requirePublicHost(next.host ?: "")
+        requirePublicHost(next.host ?: "", dns)
         return next
     }
 

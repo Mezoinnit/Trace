@@ -23,13 +23,20 @@ import kotlin.test.assertTrue
  */
 class SearchInvestigationITest {
 
-    private fun releaseJson(id: Long, tag: String, name: String): String =
-        """
+    /**
+     * Release published [daysAgo] days before *now* — relative dates keep the
+     * "last 30 days" investigation window stable regardless of the calendar
+     * (a hard-coded 2026-08-20 date silently aged out of the window).
+     */
+    private fun releaseJson(id: Long, tag: String, name: String, daysAgo: Long = 1): String {
+        val published = java.time.Instant.now().minus(java.time.Duration.ofDays(daysAgo))
+        return """
         {"id": $id, "tag_name": "$tag", "name": "$name",
          "html_url": "https://github.com/x/y/tag/$tag",
-         "published_at": "2026-08-20T10:00:00Z", "prerelease": false,
+         "published_at": "$published", "prerelease": false,
          "draft": false, "body": "notes for $name"}
         """.trimIndent()
+    }
 
     @Test
     fun `full-text search ranks and filters events`() = testApplication {

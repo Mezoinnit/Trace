@@ -20,6 +20,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Opt-in debug-signed release builds for on-device manual testing:
+        //   ./gradlew :app:assembleRelease -PtraceReleaseSigning=debug
+        // Uses the standard developer debug keystore; production signing
+        // stays outside the repository (AGENTS.md — no committed secrets).
+        if (project.findProperty("traceReleaseSigning") == "debug") {
+            create("debugSign") {
+                storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -27,6 +41,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (project.findProperty("traceReleaseSigning") == "debug") {
+                signingConfig = signingConfigs.getByName("debugSign")
+            }
         }
     }
     compileOptions {
@@ -41,9 +58,12 @@ android {
     defaultConfig {
         // Default suits the emulator (host loopback = 10.0.2.2). For physical
         // devices pass -PtraceBaseUrl=localhost together with
-        // `adb reverse tcp:8080 tcp:8080`.
+        // `adb reverse tcp:8080 tcp:8080`. For a cloud deployment pass the
+        // full URL, e.g. -PtraceBaseUrl=https://trace-api.onrender.com —
+        // anything containing "://" is used verbatim.
         val baseHost = (project.findProperty("traceBaseUrl") as String?) ?: "10.0.2.2"
-        buildConfigField("String", "BASE_URL", "\"http://$baseHost:8080\"")
+        val baseUrl = if (baseHost.contains("://")) baseHost else "http://$baseHost:8080"
+        buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
     }
 }
 

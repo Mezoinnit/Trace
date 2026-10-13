@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>NewLineAtEndOfFile:MicrometerMetrics.kt$com.mezo.trace.infra.metrics.MicrometerMetrics.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

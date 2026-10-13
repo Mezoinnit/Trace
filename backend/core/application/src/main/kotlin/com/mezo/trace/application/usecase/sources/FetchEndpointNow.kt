@@ -8,6 +8,8 @@ import com.mezo.trace.application.port.AuditLogRepository
 import com.mezo.trace.application.port.ClockPort
 import com.mezo.trace.application.port.FetchFailure
 import com.mezo.trace.application.port.FetchResult
+import com.mezo.trace.application.port.MetricsPort
+import com.mezo.trace.application.port.NoopMetrics
 import com.mezo.trace.application.port.SourceEndpointRepository
 import com.mezo.trace.application.port.SourceHealthRepository
 import com.mezo.trace.application.port.TxRunner
@@ -31,6 +33,7 @@ class FetchEndpointNow(
     private val matchWatches: com.mezo.trace.application.usecase.intelligence.MatchWatchesForEvent,
     private val tx: TxRunner,
     private val clock: ClockPort,
+    private val metrics: MetricsPort = NoopMetrics(),
 ) {
 
     sealed class Outcome {
@@ -107,6 +110,15 @@ class FetchEndpointNow(
         }
 
         // Record outcome in a fresh short transaction (Rule 7).
+        metrics.increment(
+            "fetch_total",
+            mapOf(
+                "outcome" to when (outcome) {
+                    is Outcome.Success -> "success"
+                    is Outcome.Failed -> outcome.failureState.lowercase()
+                },
+            ),
+        )
         tx.run {
             when (outcome) {
                 // 304 responses arrive as empty results carrying the stored

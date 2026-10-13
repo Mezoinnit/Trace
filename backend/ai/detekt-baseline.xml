@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:ConfiguredAiGateway.kt$ConfiguredAiGateway$1_000_000</ID>
+    <ID>MagicNumber:ConfiguredAiGateway.kt$ConfiguredAiGateway$20</ID>
+    <ID>MagicNumber:ConfiguredAiGateway.kt$ConfiguredAiGateway$64</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$120</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$30</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$365</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$3650</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$5</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$6</ID>
+    <ID>MagicNumber:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$7</ID>
+    <ID>MaxLineLength:ConfiguredAiGateway.kt$ConfiguredAiGateway$record(provider, "SEMANTIC_RELEVANCE", "$description|$eventText", mapOf("score" to score.toString()), elapsedMs(startedNanos))</ID>
+    <ID>MaxLineLength:RuleBasedLocalProvider.kt$RuleBasedLocalProvider$val hintRegex = Regex("""\b(?:in|for|about|regarding)\s+([A-Za-z0-9_.-]{2,64}(?:/[A-Za-z0-9_.-]{2,64})?)""", RegexOption.IGNORE_CASE)</ID>
+  </CurrentIssues>
+</SmellBaseline>

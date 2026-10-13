@@ -4,6 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -18,13 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -32,13 +32,17 @@ import androidx.navigation.compose.rememberNavController
 import com.mezo.trace.feature.alerts.AlertsScreen
 import com.mezo.trace.feature.alerts.AlertsUiState
 import com.mezo.trace.feature.auth.AuthScreen
+import com.mezo.trace.feature.entities.EntityDetailScreen
 import com.mezo.trace.feature.events.EventDetailScreen
 import com.mezo.trace.feature.home.FeedUiState
 import com.mezo.trace.feature.home.HomeScreen
+import com.mezo.trace.feature.search.SearchScreen
 import com.mezo.trace.feature.sources.SourcesScreen
 import com.mezo.trace.feature.sources.SourcesUiState
 import com.mezo.trace.feature.watches.WatchesScreen
 import com.mezo.trace.feature.watches.WatchesUiState
+import com.mezo.trace.ui.components.Loading
+import com.mezo.trace.ui.theme.TraceTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -48,7 +52,7 @@ class MainActivity : ComponentActivity() {
         val app = application as TraceApp
 
         setContent {
-            MaterialTheme {
+            TraceTheme {
                 val session by app.sessionStore.session.collectAsState(initial = null)
                 val initialLoaded = remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { app.sessionStore.current(); initialLoaded.value = true }
@@ -67,14 +71,11 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun AuthGate(app: TraceApp) {
-        val scope = rememberCoroutineScope()
         AuthScreen(
             onAuthenticated = { /* state flips via session flow */ },
             signIn = { e, p -> app.auth.signIn(e, p) },
             register = { e, p, d -> app.auth.register(e, p, d) },
         )
-        // Touch scope so lint sees it used for future refresh flows.
-        scope.let { }
     }
 
     @Composable
@@ -136,13 +137,17 @@ class MainActivity : ComponentActivity() {
                         history = runCatching { app.api.eventHistory(id!!) }.getOrDefault(emptyList())
                         related = runCatching { app.api.relatedEvents(id!!) }.getOrDefault(emptyList())
                     }
-                    EventDetailScreen(
-                        detail = detail,
-                        onOpenEntity = { entityId -> navController.navigate("entity/$entityId") },
-                        history = history,
-                        related = related,
-                        onOpenEvent = { eventId -> navController.navigate("event/$eventId") },
-                    )
+                    if (detail == null) {
+                        Loading()
+                    } else {
+                        EventDetailScreen(
+                            detail = detail,
+                            onOpenEntity = { entityId -> navController.navigate("entity/$entityId") },
+                            history = history,
+                            related = related,
+                            onOpenEvent = { eventId -> navController.navigate("event/$eventId") },
+                        )
+                    }
                 }
                 composable("entity/{id}") { entry ->
                     val id = entry.arguments?.getString("id")
@@ -152,9 +157,10 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(id) {
                         detail = runCatching { app.entityRepoFetch(id!!) }.getOrNull()
                     }
-                    com.mezo.trace.feature.entities.EntityDetailScreen(
+                    EntityDetailScreen(
                         name = detail?.entity?.name,
                         events = detail?.recentEvents.orEmpty(),
+                        loading = detail == null,
                     ) { eventId -> navController.navigate("event/$eventId") }
                 }
             }
@@ -237,28 +243,32 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun SearchRoute(app: TraceApp, onOpenEvent: (String) -> Unit) {
         val scope = rememberCoroutineScope()
-        var state by remember {
-            mutableStateOf(com.mezo.trace.feature.search.SearchUiState())
-        }
+        var busy by remember { mutableStateOf(false) }
+        var searched by remember { mutableStateOf(false) }
+        var results by remember { mutableStateOf<List<com.mezo.trace.core.network.EventDto>>(emptyList()) }
+        var interpretation by remember { mutableStateOf<String?>(null) }
+        var error by remember { mutableStateOf<String?>(null) }
 
-        state = state.copy(onQueryChange = { state = state.copy(query = it) })
-
-        com.mezo.trace.feature.search.SearchScreen(
-            state = state,
-            onSearch = {
+        SearchScreen(
+            busy = busy,
+            results = results,
+            interpretation = interpretation,
+            searched = searched,
+            error = error,
+            onSearch = { q ->
                 scope.launch {
-                    state = state.copy(busy = true, error = null)
+                    busy = true
+                    error = null
                     try {
-                        val result = app.events.investigate(state.query.trim())
-                        state = com.mezo.trace.feature.search.SearchUiState(
-                            query = state.query,
-                            searched = true,
-                            results = result.events,
-                            interpretation = result.interpretation,
-                            onQueryChange = { q -> state = state.copy(query = q) },
-                        )
+                        val result = app.events.investigate(q.trim())
+                        results = result.events
+                        interpretation = result.interpretation
+                        searched = true
                     } catch (e: Exception) {
-                        state = state.copy(busy = false, searched = true, error = e.message)
+                        error = e.message
+                        searched = true
+                    } finally {
+                        busy = false
                     }
                 }
             },
@@ -269,16 +279,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun WatchesRoute(app: TraceApp) {
         val scope = rememberCoroutineScope()
-        var state by remember {
-            mutableStateOf(
-                WatchesUiState(
-                    onNameChange = { },
-                    onKeywordsChange = { },
-                    onDescribeChange = { },
-                    onCancelCreate = { },
-                ),
-            )
-        }
+        var state by remember { mutableStateOf(WatchesUiState()) }
 
         suspend fun refresh() {
             state = state.copy(loading = true)
@@ -291,13 +292,16 @@ class MainActivity : ComponentActivity() {
             }.onFailure { state = state.copy(loading = false, error = it.message) }
         }
 
-        LaunchedEffect(Unit) {
-            state = state.copy(onNameChange = { state = state.copy(newName = it) })
-            state = state.copy(onKeywordsChange = { state = state.copy(newKeywordsInclude = it) })
-            state = state.copy(onDescribeChange = { state = state.copy(newDescription = it) })
-            state = state.copy(onCancelCreate = { state = state.copy(showCreateForm = false, interpretNote = null) })
+        LaunchedEffect(Unit) { refresh() }
 
-            state = state.copy(onInterpret = {
+        WatchesScreen(
+            state = state,
+            onOpenCreate = { state = state.copy(showCreate = true, error = null, interpretNote = null) },
+            onCloseCreate = { state = state.copy(showCreate = false, interpretNote = null) },
+            onNameChange = { state = state.copy(newName = it) },
+            onKeywordsChange = { state = state.copy(newKeywords = it) },
+            onDescribeChange = { state = state.copy(newDescription = it) },
+            onInterpret = {
                 scope.launch {
                     state = state.copy(interpreting = true, error = null, interpretNote = null)
                     try {
@@ -327,29 +331,24 @@ class MainActivity : ComponentActivity() {
                                 add("add a source manually for the endpoint")
                             }
                         }
-                        val interpretNote = notes.joinToString(" · ").takeIf { it.isNotBlank() }
 
                         state = state.copy(
                             interpreting = false,
                             availableEndpoints = endpoints,
                             selectedEndpoints = selected,
                             newName = proposal.suggestedName ?: state.newName,
-                            newKeywordsInclude = proposal.keywordsInclude.joinToString(", "),
-                            interpretNote = interpretNote,
+                            newKeywords = proposal.keywordsInclude.joinToString(", "),
+                            interpretNote = notes.joinToString(" · ").takeIf { it.isNotBlank() },
                         )
                     } catch (e: Exception) {
                         state = state.copy(interpreting = false, error = e.message)
                     }
                 }
-            })
-            refresh()
-        }
-
-        WatchesScreen(
-            state = state,
-            onInterpret = {
-                // handled through state.onInterpret set below
-                state.onInterpret()
+            },
+            onToggleEndpoint = { endpoint ->
+                val selected = state.selectedEndpoints.toMutableSet()
+                if (!selected.add(endpoint.id)) selected.remove(endpoint.id)
+                state = state.copy(selectedEndpoints = selected)
             },
             onCreate = {
                 scope.launch {
@@ -358,12 +357,15 @@ class MainActivity : ComponentActivity() {
                         app.watches.create(
                             name = state.newName.trim(),
                             endpointIds = state.selectedEndpoints.toList(),
-                            keywordsInclude = state.newKeywordsInclude.split(',')
+                            keywordsInclude = state.newKeywords.split(',')
                                 .map { it.trim() }
                                 .filter { it.isNotEmpty() },
                         )
                     }.onSuccess {
-                        state = state.copy(busy = false, showCreateForm = false, newName = "", newKeywordsInclude = "", selectedEndpoints = emptySet())
+                        state = WatchesUiState(
+                            watches = state.watches,
+                            availableEndpoints = state.availableEndpoints,
+                        )
                         refresh()
                     }.onFailure { state = state.copy(busy = false, error = it.message) }
                 }
@@ -373,11 +375,6 @@ class MainActivity : ComponentActivity() {
                     runCatching { app.watches.delete(watch.id) }
                     refresh()
                 }
-            },
-            onToggleEndpoint = { endpoint ->
-                val selected = state.selectedEndpoints.toMutableSet()
-                if (!selected.add(endpoint.id)) selected.remove(endpoint.id)
-                state = state.copy(selectedEndpoints = selected)
             },
         )
     }

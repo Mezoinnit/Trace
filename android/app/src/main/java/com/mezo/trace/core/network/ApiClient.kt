@@ -33,10 +33,19 @@ class ApiClient(
     accessTokenProvider: () -> String?,
     /** Test seam: inject a mock/fake engine instead of OkHttp. */
     private val engine: io.ktor.client.engine.HttpClientEngine? = null,
+    /**
+     * Refresh hook (plan §30: sessions rotate server-side). Called on 401
+     * UNAUTHENTICATED with a stale access token; on success the store has
+     * been updated and the failed request is retried once.
+     */
+    private val reauth: (suspend () -> Boolean)? = null,
 ) {
 
     private val base = baseUrl.trimEnd('/')
     private val tokenProvider = accessTokenProvider
+
+    /** Single-flight guard so concurrent 401s trigger at most one refresh. */
+    private var refreshJob: kotlinx.coroutines.Deferred<Boolean>? = null
 
     private fun clientConfig(): HttpClientConfig<*>.() -> Unit = {
         expectSuccess = true
@@ -73,6 +82,19 @@ class ApiClient(
                 contentType(ContentType.Application.Json)
                 setBody(RefreshRequest(refreshToken))
             }.body()
+        }
+
+    /** Server-side revocation of the refresh-token family, then local wipe. */
+    suspend fun signOut(refreshToken: String?): Unit =
+        try {
+            failible {
+                http.post("$base/api/v1/auth/signout") {
+                    contentType(ContentType.Application.Json)
+                    setBody(SignOutRequest(refreshToken))
+                }.body<Unit>()
+            }
+        } catch (_: Exception) {
+            // Best-effort: local sign-out must always succeed (plan §30).
         }
 
     suspend fun me(): MeResponse = authedGet("/api/v1/me")
@@ -144,6 +166,55 @@ class ApiClient(
     private fun bearer(): String =
         "Bearer " + (tokenProvider() ?: throw ApiException("UNAUTHENTICATED", "sign in first"))
 
+    /**
+     * On 401 UNAUTHENTICATED: attempt one token refresh (single-flight) and
+     * retry the request exactly once with the fresh token. Any refresh
+     * failure rethrows the original error so callers surface sign-in.
+     * [failible] has already converted the 401 into an [ApiException] by the
+     * time it reaches here, so the code string is the 401 signal.
+     */
+    private suspend fun <T> withReauth(block: suspend () -> T): T =
+        try {
+            block()
+        } catch (e: ApiException) {
+            if (e.code != "UNAUTHENTICATED") throw e
+            if (reauth == null || !refreshTokens()) throw e
+            // Retry once with the token the refresh left in the store.
+            block()
+        }
+
+    /** Single-flight refresh; returns true only when new tokens were stored. */
+    private suspend fun refreshTokens(): Boolean {
+        val hook = reauth ?: return false
+        val deferred = kotlinx.coroutines.CompletableDeferred<Boolean>()
+        val winner: kotlinx.coroutines.Deferred<Boolean>
+        synchronized(this) {
+            val current = refreshJob
+            winner = if (current?.isActive == true) current else deferred
+            refreshJob = winner
+        }
+        if (winner !== deferred) {
+            // Another coroutine owns the refresh; adopt its outcome.
+            return try {
+                winner.await()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        try {
+            val ok = hook()
+            deferred.complete(ok)
+            return ok
+        } catch (_: Exception) {
+            // Refresh failed (revoked/expired/offline): everyone returns
+            // false and the original 401 surfaces instead.
+            deferred.complete(false)
+            return false
+        } finally {
+            synchronized(this) { if (refreshJob === deferred) refreshJob = null }
+        }
+    }
+
     private suspend fun <T> failible(block: suspend () -> T): T =
         try {
             block()
@@ -157,26 +228,32 @@ class ApiClient(
         }
 
     private suspend inline fun <reified T> authedGet(path: String): T =
-        failible {
-            http.get(base + path) {
-                header(HttpHeaders.Authorization, bearer())
-            }.body<T>()
+        withReauth {
+            failible {
+                http.get(base + path) {
+                    header(HttpHeaders.Authorization, bearer())
+                }.body<T>()
+            }
         }
 
     private suspend inline fun <reified T> authedPost(path: String, body: Any?): T =
-        failible {
-            http.post(base + path) {
-                header(HttpHeaders.Authorization, bearer())
-                contentType(ContentType.Application.Json)
-                setBody(body)
-            }.body<T>()
+        withReauth {
+            failible {
+                http.post(base + path) {
+                    header(HttpHeaders.Authorization, bearer())
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                }.body<T>()
+            }
         }
 
     private suspend fun authedDelete(path: String) {
-        failible {
-            http.delete(base + path) {
-                header(HttpHeaders.Authorization, bearer())
-            }.body<Unit>()
+        withReauth {
+            failible {
+                http.delete(base + path) {
+                    header(HttpHeaders.Authorization, bearer())
+                }.body<Unit>()
+            }
         }
     }
 }

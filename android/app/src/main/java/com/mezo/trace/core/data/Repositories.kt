@@ -41,7 +41,11 @@ class AuthRepository(private val api: ApiClient, private val store: SessionStore
         return session
     }
 
-    suspend fun signOut() = store.clear()
+    /** Revokes the token family server-side, then wipes local state. */
+    suspend fun signOut() {
+        api.signOut(store.current()?.refreshToken)
+        store.clear()
+    }
 }
 
 class SourcesRepository(private val api: ApiClient) {

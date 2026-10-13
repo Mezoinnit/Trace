@@ -81,6 +81,10 @@ class ApiContainer(
     val sql: SqlConnections = TxRunnerImpl(dataSource)
     val txRunner: TxRunner = sql as TxRunner
 
+    /** Operational metrics (Phase 14); Micrometer-backed, scrape via /metrics. */
+    val metrics: com.mezo.trace.application.port.MetricsPort =
+        com.mezo.trace.infra.metrics.MicrometerMetrics()
+
     val users: UserRepository = JdbcUserRepository(sql)
     val workspaces: WorkspaceRepository = JdbcWorkspaceRepository(sql)
     val memberships: WorkspaceMembershipRepository = JdbcWorkspaceMembershipRepository(sql)
@@ -129,11 +133,21 @@ class ApiContainer(
     val ingestEvidence = com.mezo.trace.application.usecase.evidence.IngestEvidence(
         JdbcEvidenceRepository(sql),
         txRunner,
+        metrics,
     )
     val eventClusterer = com.mezo.trace.application.usecase.intelligence.EventClusterer(eventRepo, txRunner)
     val resolveEntity = com.mezo.trace.application.usecase.entities.ResolveEntity(entityRepo, txRunner)
     val mergeEntities = MergeEntities(entityRepo, auditLog, txRunner)
-    val deriveEvents = DeriveEventsFromEvidence(eventRepo, sources, eventClusterer, resolveEntity, entityRepo, auditLog, txRunner)
+    val deriveEvents = DeriveEventsFromEvidence(
+        eventRepo,
+        sources,
+        eventClusterer,
+        resolveEntity,
+        entityRepo,
+        auditLog,
+        txRunner,
+        metrics,
+    )
     val markEventContested = MarkEventContested(eventRepo, auditLog, txRunner)
     // AI layer (Phase 10, ADR-007): deterministic LocalProvider by default.
     val aiGateway: com.mezo.trace.application.port.AiGateway =
@@ -158,20 +172,42 @@ class ApiContainer(
             clock = { clock.now() },
         )
 
-    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, aiGateway, txRunner)
+    val matchWatches = MatchWatchesForEvent(watchRepo, alertRepo, auditLog, entityRepo, aiGateway, txRunner, metrics)
     val investigate = com.mezo.trace.application.usecase.search.Investigate(
         eventRepo, entityRepo, aiGateway, txRunner,
     )
     val fetchEndpointNow = FetchEndpointNow(
         sourceEndpoints, sourceHealth, auditLog, adapterRegistry,
-        ingestEvidence, deriveEvents, matchWatches, txRunner, clock,
+        ingestEvidence, deriveEvents, matchWatches, txRunner, clock, metrics,
     )
 
     // Scheduler (Phase 8, ADR-009): owns next_poll_at refinement.
+    val jobRepository = JdbcJobRepository(sql)
+    // Queue-depth gauge (OBSERVABILITY.md): re-read on every scrape; a scrape
+    // during a database incident must never fail the /metrics endpoint.
+    val micrometerMetrics = metrics as? com.mezo.trace.infra.metrics.MicrometerMetrics
+    // Pre-register known series so /metrics exposes zeros instead of missing
+    // series before the first event (OBSERVABILITY.md Phase 14).
+    val preRegisteredSeries: Any? = run {
+        listOf("success", "failure", "rate_limited", "network_failed", "parser_failed", "blocked").forEach { outcome ->
+            micrometerMetrics?.registry?.counter("fetch_total", "outcome", outcome)
+        }
+        micrometerMetrics?.registry?.counter("evidence_created_total")
+        micrometerMetrics?.registry?.counter("evidence_versioned_total")
+        micrometerMetrics?.registry?.counter("alerts_created_total")
+    }
+    val queueDepthGauge: Unit? = micrometerMetrics?.gauge("job_queue_depth") {
+        runCatching { jobRepository.countByStatus("QUEUED").toDouble() }.getOrDefault(0.0)
+    }
+    // Dead-letter depth (OBSERVABILITY.md, Rule 5): a growing DEAD count is a
+    // page-worthy signal, so it is a first-class series next to queue depth.
+    val deadLetterGauge: Unit? = micrometerMetrics?.gauge("jobs_dead_lettered") {
+        runCatching { jobRepository.countByStatus("DEAD").toDouble() }.getOrDefault(0.0)
+    }
     val scheduler = com.mezo.trace.application.usecase.scheduler.ScheduleDueFetches(
         sourceEndpoints,
         sourceHealth,
-        JdbcJobRepository(sql),
+        jobRepository,
         txRunner,
         clock,
     )

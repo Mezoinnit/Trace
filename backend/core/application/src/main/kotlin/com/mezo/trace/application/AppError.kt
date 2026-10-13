@@ -31,4 +31,10 @@ sealed class AppError(
 
     class RateLimited(val retryAfterSeconds: Long) :
         AppError(429, "RATE_LIMITED", "too many requests")
+
+    class LengthRequired(message: String = "content-length header is required") :
+        AppError(411, "LENGTH_REQUIRED", message)
+
+    class PayloadTooLarge(limitBytes: Long) :
+        AppError(413, "PAYLOAD_TOO_LARGE", "request body exceeds the $limitBytes byte limit")
 }

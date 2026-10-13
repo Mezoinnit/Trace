@@ -1,6 +1,8 @@
 package com.mezo.trace.application.usecase.evidence
 
 import com.mezo.trace.application.port.EvidenceRepository
+import com.mezo.trace.application.port.MetricsPort
+import com.mezo.trace.application.port.NoopMetrics
 import com.mezo.trace.application.port.NormalizedItem
 import com.mezo.trace.application.port.TxRunner
 import com.mezo.trace.domain.Evidence
@@ -23,6 +25,7 @@ import java.util.UUID
 class IngestEvidence(
     private val evidenceRepository: EvidenceRepository,
     private val tx: TxRunner,
+    private val metrics: MetricsPort = NoopMetrics(),
 ) {
 
     data class EvidenceTouch(
@@ -45,7 +48,7 @@ class IngestEvidence(
         items: List<NormalizedItem>,
     ): IngestSummary {
         if (items.isEmpty()) return IngestSummary(0, 0, 0, emptyList())
-        return tx.run {
+        val summary = tx.run {
             var created = 0
             var unchanged = 0
             var versioned = 0
@@ -109,6 +112,11 @@ class IngestEvidence(
                 }
             }
             IngestSummary(created, unchanged, versioned, touched)
+        }
+        // OBSERVABILITY.md Phase 14: evidence lifecycle counters.
+        return summary.also {
+            if (it.created > 0) metrics.increment("evidence_created_total")
+            if (it.versioned > 0) metrics.increment("evidence_versioned_total")
         }
     }
 

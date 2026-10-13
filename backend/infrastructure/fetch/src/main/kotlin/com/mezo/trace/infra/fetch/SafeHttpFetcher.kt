@@ -25,6 +25,11 @@ class SafeHttpFetcher(
     private val maxRedirects: Int = 3,
     private val connectTimeout: Duration = Duration.ofSeconds(5),
     private val totalTimeout: Duration = Duration.ofSeconds(15),
+    /**
+     * Injectable DNS so rebinding defenses are testable and so the guard can
+     * re-resolve immediately before every connection (TOCTOU narrowing, ADR-011).
+     */
+    private val dns: SsrfGuard.DnsResolver = SsrfGuard.systemDns,
 ) : HttpFetcher {
 
     private val client: HttpClient = HttpClient.newBuilder()
@@ -45,7 +50,7 @@ class SafeHttpFetcher(
             val location = response.headers().firstValue("Location").orElse(null)
                 ?: throw FetchFailure(FetchFailure.Kind.NETWORK, "redirect without Location")
             // Revalidate the redirect target host/IPs before following (T2).
-            uri = SsrfGuard.requireValidRedirect(uri, location)
+            uri = SsrfGuard.requireValidRedirect(uri, location, dns)
             requireAllowedScheme(uri)
 
             val etag = request.etag
@@ -80,7 +85,7 @@ class SafeHttpFetcher(
             throw FetchFailure(FetchFailure.Kind.UNSUPPORTED_SCHEME, "invalid url")
         }
         requireAllowedScheme(uri)
-        SsrfGuard.requirePublicHost(uri.host ?: "")
+        SsrfGuard.requirePublicHost(uri.host ?: "", dns)
         return uri
     }
 
@@ -94,7 +99,19 @@ class SafeHttpFetcher(
         )
     }
 
+    /**
+     * Re-resolves and re-validates the target host immediately before every
+     * connection using the injected [dns] (ADR-011 T2, Phase 14 matrix: DNS
+     * rebinding TOCTOU). A hostname that resolved public at parse time but
+     * rebinds to a private address before connect is rejected here.
+     */
+    private fun revalidateBeforeSend(uri: URI) {
+        val host = uri.host ?: return // literal-IP URIs have no host to rebind
+        SsrfGuard.requirePublicHost(host, dns)
+    }
+
     private fun send(uri: URI, etag: String?, timeoutMs: Long): HttpResponse<java.io.InputStream> {
+        revalidateBeforeSend(uri)
         val builder = HttpRequest.newBuilder(uri)
             .timeout(Duration.ofMillis(timeoutMs.coerceAtLeast(1)))
             .header("Accept-Encoding", "gzip")

@@ -1,0 +1,38 @@
+# Render.com deployment (free tier) for single-user Trace.
+# Prerequisite: push this repository to GitHub, then in the Render dashboard
+# "New +" → "Blueprint" → point it at the repo; Render reads this file.
+#
+# Requires a Postgres instance — two free options:
+#  • Render free Postgres (expires after 30 days; recreate + restore backup)
+#  • Neon.tech free tier (does not expire; set `sslmode=require` in the URL)
+#
+# The api service is all-in-one (EMBED_WORKER=true): HTTP + worker + scheduler
+# in one free-tier process. See DEPLOYMENT.md §5.1.
+
+services:
+  - type: web
+    name: trace-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health/ready
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        value: jdbc:postgresql://<host>:5432/<db>?sslmode=require
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: EMBED_WORKER
+        value: true
+      - key: DATABASE_MAX_POOL_SIZE
+        value: 3
+      # REQUIRED in production (ADR-015, ≥32 bytes). Set in the dashboard —
+      # never commit it: `openssl rand -base64 48`
+      - key: JWT_SECRET
+        sync: false
+      - key: TRACE_ENV
+        value: production

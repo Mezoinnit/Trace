@@ -29,6 +29,10 @@ platform to SSRF, DNS rebinding, redirect abuse, and resource exhaustion
 
 - URL string checks are never sufficient; IP-level validation is mandatory.
 - Generic web fetching is treated as a degraded, resource-bounded capability.
-- This remains a verified control (SSRF/DNS rebinding tests, Phase 14).
+- This remains a verified control (SSRF/DNS rebinding tests, Phase 14). The
+  fetcher's DNS resolver is injectable and re-resolves immediately before
+  every connection (initial validation, redirect hops, and pre-`send`), which
+  narrows the rebinding TOCTOU window to the transport's own connect and is
+  proven by the rebinding test in `SsrfGuardTest`.
 
 References: plan §11, §38.2, THREAT_MODEL.md T2.

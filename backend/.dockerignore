@@ -1,0 +1,11 @@
+# Build context hygiene: keep secrets and local state out of the image.
+# (Rule: secrets never leave the machine — env vars are injected at deploy time.)
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/.gradle
+backend/build
+backend/*/build
+.git
+.idea
+*.log

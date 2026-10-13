@@ -19,6 +19,9 @@ data class SignInRequest(val email: String, val password: String)
 data class RefreshRequest(@SerialName("refresh_token") val refreshToken: String)
 
 @Serializable
+data class SignOutRequest(@SerialName("refresh_token") val refreshToken: String?)
+
+@Serializable
 data class UserDto(
     val id: String,
     val email: String,

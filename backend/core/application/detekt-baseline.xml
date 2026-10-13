@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CreateSource.kt$CreateSource$internal fun deriveMetadata( adapterId: String, provider: Provider, endpointUri: String, displayNameHint: String?, ): DerivedMetadata</ID>
+    <ID>CyclomaticComplexMethod:EventClusterer.kt$EventClusterer$fun findCluster( type: String, item: NormalizedItem, occurredAt: java.time.Instant?, sourceId: String, ): Decision</ID>
+    <ID>CyclomaticComplexMethod:FetchEndpointNow.kt$FetchEndpointNow$fun execute(endpointId: String): Outcome</ID>
+    <ID>CyclomaticComplexMethod:WatchEvaluator.kt$WatchEvaluator$fun evaluate( watch: Watch, event: Event, linkedEntityIds: Set&lt;String&gt; = emptySet(), now: Instant = Instant.now(), ): Result</ID>
+    <ID>CyclomaticComplexMethod:WatchUseCases.kt$CreateWatch.Companion$internal fun validateRules(rules: Rules)</ID>
+    <ID>CyclomaticComplexMethod:WatchUseCases.kt$UpdateWatch$fun execute(actor: UserId, watchId: String, patch: Patch): Watch</ID>
+    <ID>EmptyFunctionBlock:EventClustererTest.kt$NoopEvents${}</ID>
+    <ID>InvalidPackageDeclaration:RefreshSessionTest.kt$package com.mezo.trace.application</ID>
+    <ID>InvalidPackageDeclaration:RequireMembershipTest.kt$package com.mezo.trace.application</ID>
+    <ID>LoopWithTooManyJumpStatements:EventClusterer.kt$EventClusterer$for</ID>
+    <ID>MagicNumber:AppError.kt$AppError.Conflict$409</ID>
+    <ID>MagicNumber:AppError.kt$AppError.Forbidden$403</ID>
+    <ID>MagicNumber:AppError.kt$AppError.InvalidCredentials$401</ID>
+    <ID>MagicNumber:AppError.kt$AppError.LengthRequired$411</ID>
+    <ID>MagicNumber:AppError.kt$AppError.NotFound$404</ID>
+    <ID>MagicNumber:AppError.kt$AppError.PayloadTooLarge$413</ID>
+    <ID>MagicNumber:AppError.kt$AppError.RateLimited$429</ID>
+    <ID>MagicNumber:AppError.kt$AppError.Unauthenticated$401</ID>
+    <ID>MagicNumber:AppError.kt$AppError.ValidationFailed$400</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.1</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.10</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.15</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.20</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.25</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.3</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.30</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.35</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.4</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.45</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.6</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.65</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.7</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.8</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.85</ID>
+    <ID>MagicNumber:ConfidenceCalculator.kt$ConfidenceCalculator$0.9</ID>
+    <ID>MagicNumber:CreateWorkspace.kt$CreateWorkspace.Companion$200</ID>
+    <ID>MagicNumber:DeriveEventsFromEvidence.kt$DeriveEventsFromEvidence$12</ID>
+    <ID>MagicNumber:FetchEndpointNow.kt$FetchEndpointNow$1_000_000</ID>
+    <ID>MagicNumber:FetchEndpointNow.kt$FetchEndpointNow$200</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator$100</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator$16</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator.Policy$15</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator.Policy$240</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator.Policy$30</ID>
+    <ID>MagicNumber:IntervalCalculator.kt$IntervalCalculator.Policy$5</ID>
+    <ID>MagicNumber:Investigate.kt$Investigate$200</ID>
+    <ID>MagicNumber:MarkEventContested.kt$MarkEventContested$200</ID>
+    <ID>MagicNumber:RegisterUser.kt$RegisterUser$100</ID>
+    <ID>MagicNumber:ResolveSource.kt$ResolveSource$100</ID>
+    <ID>MagicNumber:ResolveSource.kt$ResolveSource$200</ID>
+    <ID>MagicNumber:SitemapProbe.kt$SitemapProbe$200</ID>
+    <ID>MagicNumber:SitemapProbe.kt$SitemapProbe$256</ID>
+    <ID>MagicNumber:SitemapProbe.kt$SitemapProbe$299</ID>
+    <ID>MagicNumber:WatchEvaluator.kt$WatchEvaluator$3600</ID>
+    <ID>MagicNumber:WatchUseCases.kt$CreateWatch.Companion$200</ID>
+    <ID>MaxLineLength:EventClustererTest.kt$NoopEvents$override fun evidenceForEvent(eventId: String): List&lt;com.mezo.trace.application.port.EventEvidenceView&gt;</ID>
+    <ID>MaxLineLength:JobRepository.kt$JobRepository$fun</ID>
+    <ID>MaxLineLength:RequireMembershipTest.kt$InMemoryMemberships$override fun listMemberInfo(workspaceId: WorkspaceId): List&lt;com.mezo.trace.application.model.MemberInfo&gt;</ID>
+    <ID>MaxLineLength:ResolveSourceTest.kt$ResolveSourceTest$"https://blog.example.com/feed.xml" to ("application/rss+xml" to "&lt;rss version=\"2.0\"&gt;&lt;channel/&gt;&lt;/rss&gt;")</ID>
+    <ID>MaxLineLength:ResolveSourceTest.kt$ResolveSourceTest$"https://direct.example.com/feed" to ("application/atom+xml" to "&lt;?xml version=\"1.0\"?&gt;&lt;feed xmlns=\"http://www.w3.org/2005/Atom\"/&gt;")</ID>
+    <ID>MaxLineLength:ResolveSourceTest.kt$ResolveSourceTest$"https://sitemap-site.example.com/" to (null to "&lt;html&gt;&lt;head&gt;&lt;title&gt;Has Sitemap&lt;/title&gt;&lt;/head&gt;&lt;body&gt;x&lt;/body&gt;&lt;/html&gt;")</ID>
+    <ID>MaxLineLength:SitemapProbeTest.kt$SitemapProbeTest$"${origin}sitemap.xml" to (200 to "&lt;?xml version=\"1.0\" encoding=\"UTF-8\"?&gt;\n&lt;sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"&gt;&lt;/sitemapindex&gt;".toByteArray())</ID>
+    <ID>MaxLineLength:SitemapProbeTest.kt$SitemapProbeTest$"${origin}sitemap.xml" to (200 to "&lt;urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"&gt;&lt;/urlset&gt;".toByteArray())</ID>
+    <ID>MaxLineLength:WatchUseCases.kt$CreateWatch.Companion$listOf("keywords_include" to rules.keywordsInclude, "keywords_exclude" to rules.keywordsExclude)</ID>
+    <ID>NestedBlockDepth:EventClusterer.kt$EventClusterer$fun findCluster( type: String, item: NormalizedItem, occurredAt: java.time.Instant?, sourceId: String, ): Decision</ID>
+    <ID>NewLineAtEndOfFile:MetricsPort.kt$com.mezo.trace.application.port.MetricsPort.kt</ID>
+    <ID>NewLineAtEndOfFile:TraceApplication.kt$com.mezo.trace.application.TraceApplication.kt</ID>
+    <ID>RethrowCaughtException:ResolveSource.kt$ResolveSource$throw failure</ID>
+    <ID>ReturnCount:DeriveEventsFromEvidence.kt$DeriveEventsFromEvidence$private fun upsertReleaseEvent( endpoint: SourceEndpoint, touch: IngestEvidence.EvidenceTouch, ): Event?</ID>
+    <ID>SwallowedException:ResolveSource.kt$ResolveSource$e: IllegalArgumentException</ID>
+    <ID>ThrowsCount:MergeEntities.kt$MergeEntities$fun execute(actorId: String, loserId: String, survivorId: String)</ID>
+    <ID>ThrowsCount:RefreshSession.kt$RefreshSession$fun execute(refreshRaw: String): Refreshed</ID>
+    <ID>ThrowsCount:WatchUseCases.kt$CreateWatch$fun execute( actor: UserId, workspaceId: String, name: String, endpointIds: Set&lt;String&gt;, eventTypes: Set&lt;String&gt;, rules: Rules = Rules(), ): Watch</ID>
+    <ID>ThrowsCount:WatchUseCases.kt$CreateWatch.Companion$internal fun validateRules(rules: Rules)</ID>
+    <ID>ThrowsCount:WatchUseCases.kt$UpdateWatch$fun execute(actor: UserId, watchId: String, patch: Patch): Watch</ID>
+    <ID>TooGenericExceptionCaught:FetchEndpointNow.kt$FetchEndpointNow$unexpected: Exception</ID>
+    <ID>TooManyFunctions:EntityRepository.kt$EntityRepository</ID>
+    <ID>TooManyFunctions:IntelligenceRepositories.kt$EventRepository</ID>
+    <ID>VariableNaming:EventClusterer.kt$EventClusterer$private val VERSION_TOKEN = Regex("""v?\d+(?:\.\d+)+""", RegexOption.IGNORE_CASE)</ID>
+    <ID>VariableNaming:SitemapProbe.kt$SitemapProbe$private val SITEMAP_ROOT = Regex( """^\s*(&lt;\?xml[^&gt;]*\?&gt;)?\s*&lt;(urlset|sitemapindex)[\s&gt;]""", RegexOption.IGNORE_CASE, )</ID>
+  </CurrentIssues>
+</SmellBaseline>

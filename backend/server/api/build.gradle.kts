@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":infrastructure:fetch"))
     implementation(project(":adapters"))
     implementation(project(":ai"))
+    implementation(project(":infrastructure:metrics"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
@@ -30,6 +31,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlin.logging)
+    implementation(libs.micrometer.registry.prometheus)
     implementation(libs.logback.classic)
     implementation(libs.logstash.encoder)
 

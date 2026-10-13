@@ -94,13 +94,24 @@ fetches, max AI tokens, max Watch complexity. See DATA_MODEL / WATCH_MODEL bound
 - Correlation IDs thread through `source → evidence → event → watch → alert →
   notification` for investigations.
 
-## 11. Deployment hardening (Phase 14)
+## 11. Deployment hardening (Phase 14 — implemented)
 
-- Secure headers, dependency scanning, static analysis, backup/restore, DR,
-  monitoring, alerting, incident procedures.
-- Mandatory security tests: IDOR, cross-tenant access, SSRF, DNS rebinding,
-  oversized payloads, redirect abuse, malformed content, auth abuse,
-  rate-limit bypass, duplicate notification, job replay, data corruption.
+- Secure headers + request body bounds: `SecureHeaders` plugin (HSTS behind
+  `TRACE_HSTS_ENABLED`, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`,
+  CSP, `no-store` on API responses, 411/413 body bounds).
+- Dependency scanning (Dependabot, weekly) and static analysis (detekt) run
+  in CI; failures block merge.
+- Backup/restore scripts + compose backup service; DR and incident runbook in
+  `INCIDENT_RESPONSE.md`; metrics (`/metrics`) and health endpoints for
+  alerting (OBSERVABILITY.md).
+- Mandatory security tests — all implemented and green: IDOR and cross-tenant
+  access (`CrossTenantResourceIsolationITest`), SSRF with redirect
+  re-validation (`SsrfGuardTest`), oversized payloads (`SecureHeadersTest`),
+  malformed content (parser-failed health), auth abuse/enumeration
+  (`AuthAbuseITest`), rate-limit bypass, watch-quota abuse
+  (`WatchQuotaITest`), duplicate notification, job replay, data corruption
+  (versioned evidence), and the secret-redaction proof (`SecretRedactionTest`):
+  submitted credentials never appear in logs on any path.
 
 ## 12. Security response
 
