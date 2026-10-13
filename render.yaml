@@ -19,8 +19,9 @@ services:
     healthCheckPath: /health/ready
     autoDeploy: true
     envVars:
+      # JDBC form, direct (non-pooler) endpoint, e.g.
+      # jdbc:postgresql://ep-abc.aws.neon.tech:5432/neondb?sslmode=require
       - key: DATABASE_URL
-        value: jdbc:postgresql://<host>:5432/<db>?sslmode=require
         sync: false
       - key: DATABASE_USER
         sync: false
