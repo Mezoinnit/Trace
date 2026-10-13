@@ -4,7 +4,7 @@
 # Two-stage build keeps the runtime image free of the Gradle toolchain and
 # sources. The wrapper downloads Gradle 9.4.1 + dependencies at image-build
 # time; the final image only carries the JRE and the installDist output.
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /src
 
 # Layer cache: wrapper + dependency metadata first, so code edits do not
@@ -16,7 +16,7 @@ RUN ./gradlew --no-daemon :server:api:dependencies > /dev/null 2>&1 || true
 COPY . .
 RUN ./gradlew --no-daemon :server:api:installDist
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /src/server/api/build/install/api ./
 
