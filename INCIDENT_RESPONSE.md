@@ -48,7 +48,7 @@ Operational runbook for the Trace backend. Companion to `DEPLOYMENT.md`
       fetches never duplicate evidence or alerts.
 5. Post-incident: file the postmortem within 3 business days; a backup that
    has never been restore-tested does not count as a backup — run the drill
-   quarterly (DEPLOYMENT.md §7).
+    quarterly (DEPLOYMENT.md §8).
 
 ## Runbook: suspected source abuse (SSRF attempt / poisoned feed)
 

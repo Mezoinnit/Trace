@@ -5,6 +5,7 @@ import com.mezo.trace.application.usecase.scheduler.IntervalCalculator
 import com.mezo.trace.domain.UserId
 import com.mezo.trace.domain.Version
 import com.mezo.trace.infra.persistence.DatabaseFactory
+import com.mezo.trace.infra.persistence.Migrator
 import com.mezo.trace.infra.security.SecurityConfig
 import com.mezo.trace.server.api.ratelimit.RateDecision
 import com.mezo.trace.server.api.ratelimit.SlidingWindowRateLimiter
@@ -136,6 +137,9 @@ fun Application.module(
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
     val dataSource = DatabaseFactory.createDataSource()
+    // Flyway on API startup (DEPLOYMENT.md §4) — required for single-process
+    // deployments (EMBED_WORKER=true) where no standalone worker ever boots.
+    Migrator.migrate(dataSource)
     val security = SecurityConfig.load()
     val container = ApiContainer(dataSource, security)
 

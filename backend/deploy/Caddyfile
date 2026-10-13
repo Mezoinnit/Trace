@@ -1,0 +1,7 @@
+# Trace reverse proxy. Caddy obtains and renews Let's Encrypt certificates
+# automatically for the hostname below — point its DNS A record at this
+# server's public IP first (DEPLOYMENT.md §6). setup.sh substitutes the real
+# hostname when installing this file to /etc/caddy/Caddyfile.
+trace.example.duckdns.org {
+	reverse_proxy localhost:8080
+}

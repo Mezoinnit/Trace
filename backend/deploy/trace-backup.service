@@ -1,0 +1,16 @@
+# Daily database backup (DEPLOYMENT.md §8) — bare-metal counterpart of the
+# compose pg_backup service. Runs backend/scripts/backup.sh as the postgres
+# OS user (peer auth over the local socket; no password in this unit).
+[Unit]
+Description=Trace database backup (pg_dump)
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+Environment=PGHOST=/var/run/postgresql
+Environment=PGUSER=postgres
+Environment=PGDATABASE=trace
+Environment=TRACE_BACKUP_DIR=/var/backups/trace
+Environment=TRACE_BACKUP_RETENTION=14
+ExecStart=/opt/trace/backend/scripts/backup.sh

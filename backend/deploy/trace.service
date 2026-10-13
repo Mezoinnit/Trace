@@ -1,0 +1,27 @@
+# Trace API — all-in-one process (HTTP + embedded worker + scheduler).
+# Managed by DEPLOYMENT.md §6; secrets come from /etc/trace/env (mode 600).
+[Unit]
+Description=Trace API (HTTP + embedded worker/scheduler)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trace
+Group=trace
+WorkingDirectory=/opt/trace/backend
+EnvironmentFile=/etc/trace/env
+Environment=JAVA_OPTS=-Xmx768m
+ExecStart=/opt/trace/backend/server/api/build/install/api/bin/api
+Restart=always
+RestartSec=5
+
+# Hardening: the app needs no filesystem writes (console logging) and no
+# privilege escalation.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

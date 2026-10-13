@@ -109,8 +109,12 @@ to the architecture.
 
 1. Push this repository to GitHub (Render deploys from a git remote).
 2. Create a Postgres: Neon.tech free tier (does not expire) or a Render free
-   Postgres (expires after 30 days — recreate and restore from backup, §7).
-   Copy its connection string and append `?sslmode=require` for Neon.
+   Postgres (expires after 30 days — recreate and restore from backup, §8).
+   Use Neon's **direct** endpoint (not the `-pooler` pooled one) and convert
+   its URL to JDBC form — e.g. `postgresql://user:pass@ep-abc.aws.neon.tech/neondb`
+   becomes `DATABASE_URL=jdbc:postgresql://ep-abc.aws.neon.tech:5432/neondb?sslmode=require`,
+   with the user/password in `DATABASE_USER`/`DATABASE_PASSWORD` instead of
+   the URL.
 3. Render dashboard → **New +** → **Blueprint** → select the repo. Render
    reads `render.yaml`; fill in the synced values: `DATABASE_URL`,
    `DATABASE_USER`, `DATABASE_PASSWORD`, and a generated `JWT_SECRET`
@@ -128,7 +132,90 @@ request after a wake adds ~30–60 s latency; scheduled fetches pause while
 asleep) and free Postgres instances expire on Render (use Neon to avoid
 this, or restore `backend/scripts/backup.sh` output after recreation).
 
-## 6. CI pipeline
+## 6. Bare-metal VPS — Oracle Cloud Always Free (no Docker)
+
+An Always Free Oracle Cloud VM (Ampere A1: up to 4 OCPUs + 24 GB RAM,
+unlimited duration, never sleeps) runs Trace as plain systemd services —
+no containers anywhere. The all-in-one mode (§5.1) is the deployment shape;
+`backend/deploy/` ships everything the server needs. Postgres runs on the
+same VM, bound to localhost.
+
+### 6.1 Oracle Cloud console (first time)
+
+1. Sign up at <https://cloud.oracle.com/free> (one free account per person;
+   a card is verified but not charged; the account stays **Always Free** after
+   the trial if you stay within limits).
+2. **Home → Compute → Create Instance**:
+   - Name: `trace-vm`.
+   - Image: **Ubuntu 24.04 (aarch64)**.
+   - Shape: **VM.Standard.A1.Flex**, 2 OCPUs / 4 GB RAM (Always Free allows
+     up to 4 OCPUs / 24 GB total — stay at or under that).
+   - SSH keys: paste your public key (`cat ~/.ssh/id_ed25519.pub`).
+3. Networking: during creation choose **"Create new virtual cloud network"**
+   with defaults (public subnet). After creation, open
+   **Networking → Virtual Cloud Networks → your VCN → Default Security List**
+   → add **ingress rules**: TCP 22 (ideally restricted to your IP), TCP 80,
+   TCP 443. Nothing else — Postgres is never exposed.
+4. Note the instance's **public IP**.
+   - Capacity note: A1 shapes sometimes return "out of capacity" — pick
+     another region (Ashburn, Phoenix, Tokyo commonly work) and retry.
+   - Hygiene: log into the console every few weeks — Oracle may flag accounts
+     idle 30+ days as abandoned.
+
+### 6.2 DuckDNS hostname (free)
+
+1. Create a free account at <https://www.duckdns.org>, add a subdomain
+   (e.g. `trace-yourname`), and point its **A record** at the VM's public IP.
+2. The Android app requires HTTPS, so this hostname is what the app will call;
+   Caddy below provisions a real Let's Encrypt certificate for it automatically.
+
+### 6.3 Server setup (one command)
+
+SSH in as the image's default user and run the shipped installer — it is
+idempotent (safe to re-run) and keeps all secrets on the machine:
+
+```bash
+ssh ubuntu@<vm-public-ip>
+git clone https://github.com/Mezoinnit/Trace.git
+cd Trace/backend/deploy
+sudo ./setup.sh trace-yourname.duckdns.org   # your DuckDNS hostname
+```
+
+`setup.sh` installs OpenJDK 17, PostgreSQL 16, Caddy and ufw; creates the
+`trace` system user and database; generates `JWT_SECRET` and the DB password
+into `/etc/trace/env` (mode 600, root-owned, never committed); builds
+`:server:api:installDist`; and enables `trace.service`,
+`trace-backup.timer` and Caddy (HTTPS termination on :443 → API on :8080).
+
+### 6.4 Verify
+
+```bash
+curl https://trace-yourname.duckdns.org/health/ready
+journalctl -u trace -n 20          # app log
+systemctl status trace trace-backup.timer caddy
+```
+
+### 6.5 Android client
+
+```bash
+cd android
+./gradlew :app:assembleDebug -PtraceBaseUrl=https://trace-yourname.duckdns.org
+```
+
+Install the APK on the device and register — data lives in the VM's Postgres.
+
+### 6.6 Day-2 operations
+
+- **Update after pushing to GitHub**: `sudo /opt/trace/backend/deploy/deploy.sh`
+  (pull → rebuild → restart → health check).
+- **Backups**: `trace-backup.timer` runs `backup.sh` daily into
+  `/var/backups/trace` (14 retained). Copy dumps off the VM regularly —
+  a backup on the same disk is not DR. Restore drill: §8 + `restore.sh`.
+- **Secrets**: `/etc/trace/env` only (Rule: never commit, never log).
+- **Metrics**: `https://<hostname>/metrics` (Prometheus text format; consider
+  restricting to your IP in the Caddyfile).
+
+## 7. CI pipeline
 
 `.github/workflows/ci.yml`:
 
@@ -137,13 +224,14 @@ this, or restore `backend/scripts/backup.sh` output after recreation).
 3. Migrations are validated by running Flyway against the CI Postgres.
 4. Failures block merge.
 
-## 7. Backups and DR (Phase 14 — implemented)
+## 8. Backups and DR (Phase 14 — implemented)
 
 - Postgres: `backend/scripts/backup.sh` performs `pg_dump` in custom format
   with configurable retention; `backend/scripts/restore.sh` restores and runs
   a verification query before reporting success. The compose file ships a
   `pg_backup` service that runs the same script on an interval loop
-  (`restart: unless-stopped`) so drills run without extra tooling.
+  (`restart: unless-stopped`); bare-metal deployments get the same via the
+  `trace-backup.timer` systemd unit (§6.3). Drills run without extra tooling.
 - Object storage: versioned, cross-region copy where the provider supports it.
 - Incident procedures: `INCIDENT_RESPONSE.md` (severity ladder, roles,
   runbooks for database failure, source abuse, credential leak).
@@ -151,8 +239,9 @@ this, or restore `backend/scripts/backup.sh` output after recreation).
   alerts counters, `job_queue_depth` and `jobs_dead_lettered` gauges) plus
   health endpoints; alert thresholds in OBSERVABILITY.md.
 
-## 8. Secrets in deployment
+## 9. Secrets in deployment
 
 - Environment-managed or encrypted secret store; rotation; scoped credentials.
+- Bare-metal (§6): secrets live only in `/etc/trace/env` (mode 600).
 - AI provider keys and FCM credentials exist only server-side. The Android app
   holds no credentials and talks only to the backend.
